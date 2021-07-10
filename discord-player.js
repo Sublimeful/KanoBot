@@ -26,7 +26,8 @@ class Player {
     if(!this.servers[message.guild.id]) {
       this.servers[message.guild.id] = {
         queue: {},
-        connection: null
+        connection: null,
+        volume: 1.0
       }
     }
 
@@ -53,6 +54,7 @@ class Player {
     const isConnected = await this.join(message);
     if(!isConnected) return;
 
+    const server = this.servers[message.guild.id];
 
 
     // Is Youtube link
@@ -71,6 +73,7 @@ class Player {
       } catch(err) {}
 
       if(isMedia) {
+        server.connection.play(query);
 
         
       } else {
