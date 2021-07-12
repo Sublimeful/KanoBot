@@ -85,7 +85,7 @@ client.on("message", async message => {
   const serverQueue = player.getQueue(message);
   const serverCurrentTrack = player.getCurrentTrack(message);
 
-  if(serverQueue == null) player.createContract(message);
+  //if(serverQueue == null) player.createContract(message);
 
   // Waits until the previous command is fully processed before continuing
   await processor;
