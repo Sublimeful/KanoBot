@@ -14,48 +14,80 @@ var processor;
 //<-- event: onnotification
 player.on("notification", (message, type, data) => {
   switch(type) {
-    case "trackStart":
-      message.channel.send(getNowPlaying(data));
+    case "trackStart": {
+      const m1 = getNowPlaying(data);
+      message.channel.send(m1);
       break;
-    case "trackAdded":
-      message.channel.send(getSimpleEmbed(`Track added: [${data.title}](${data.url}) [${data.requestor}]`));
+    }
+    case "trackAdded": {
+      const m1 = getSimpleEmbed(`Track added: [${data.title}](${data.url}) [${data.requestor}]`);
+      message.channel.send(m1);
       break;
-    case "disconnected":
-      message.channel.send(getSimpleEmbed("🛑 Playback has been stopped because I have disconnected!"))
+    }
+    case "disconnected": {
+      const m1 = getSimpleEmbed("🛑 Playback has been stopped because I have disconnected!");
+      message.channel.send(m1);
       break;
-    case "clear":
-      message.channel.send(getSimpleEmbed("🗑️ Cleared the queue!"))
+    }
+    case "clear": {
+      const m1 = getSimpleEmbed("🗑️ Cleared the queue!");
+      message.channel.send(m1);
       break;
-    case "remove":
-      message.channel.send(getSimpleEmbed(`${data.length} songs have been removed! These are the songs:`))
-      message.channel.send(getPrintableQueue(data));
+    }
+    case "remove": {
+      const m1 = getSimpleEmbed(`${data.length} songs have been removed! These are the songs:`);
+      const m2 = getPrintableQueue(data);
+      message.channel.send(m1);
+      message.channel.send(m2);
       break;
-    case "move":
-      message.channel.send(getMoveEmbed(data[0], data[1], data[2]));
+    }
+    case "move": {
+      const m1 = getMoveEmbed(data[0], data[1], data[2]);
+      message.channel.send(m1);
       break;
-    case "search":
-      message.channel.send(getSimpleEmbed(`**----- Searching for -----** ${codify(data)}`));
+    }
+    case "search": {
+      const m1 = getSimpleEmbed(`**----- Searching for -----** ${codify(data)}`);
+      message.channel.send(m1);
       break;
-    case "noResults":
-      message.channel.send(getSimpleEmbed(`No results could be found for search query: ${codify(data)}`));
+    }
+    case "noResults": {
+      const m1 = getSimpleEmbed(`No results could be found for search query: ${codify(data)}`);
+      message.channel.send(m1);
       break;
-    case "pause":
-      message.channel.send(getSimpleEmbed("⏸ Playback has been paused!"))
+    }
+    case "pause": {
+      const m1 = getSimpleEmbed("⏸ Playback has been paused!");
+      message.channel.send(m1);
       break;
-    case "resume":
-      message.channel.send(getSimpleEmbed("▶️ Playback has been resumed!"))
+    }
+    case "resume": {
+      const m1 = getSimpleEmbed("▶️ Playback has been resumed!");
+      message.channel.send(m1);
       break;
-    case "seekTo":
-      message.channel.send(getSimpleEmbed(`**----- Seeked to -----** ${codify(formatTime(Math.floor(data/1000)))}`));
+    }
+    case "seekTo": {
+      const ts = formatTime(Math.floor(data/1000));
+      const m1 = getSimpleEmbed(`**----- Seeked to -----** ${codify(ts)}`);
+      message.channel.send(m1);
       break;
-    case "setVolume":
-      message.channel.send(getSimpleEmbed(`**----- New volume -----** ${codify(`${Math.floor(data * 100)}%`)}`));
+    }
+    case "setVolume": {
+      const vol = `${Math.floor(data * 100)}%`;
+      const m1 = getSimpleEmbed(`**----- New volume -----** ${codify(vol)}`);
+      message.channel.send(m1);
       break;
-    case "loop":
-      message.channel.send(getSimpleEmbed(`**----- Loop -----** ${codify(data)}`));
+    }
+    case "loop": {
+      const m1 = getSimpleEmbed(`**----- Loop -----** ${codify(data)}`);
+      message.channel.send(m1);
       break;
-    default:
-      message.channel.send(getSimpleEmbed("How is this even possible?"));
+    }
+    default: {
+      const m1 = getSimpleEmbed("How is this even possible?");
+      message.channel.send(m1);
+      break;
+    }
   }
 })
 //-->
@@ -63,14 +95,21 @@ player.on("notification", (message, type, data) => {
 //<-- event: onerror
 player.on("error", (message, reason) => {
   switch(reason) {
-    case "voiceChannel":
-      message.channel.send(getSimpleEmbed("You need to be in a voice channel to play music!"));
+    case "voiceChannel": {
+      const m1 = getSimpleEmbed("You need to be in a voice channel to play music!");
+      message.channel.send(m1);
       break;
-    case "permissions":
-      message.channel.send(getSimpleEmbed("I need the permissions to join and speak in your voice channel!"));
+    }
+    case "permissions": {
+      const m1 = getSimpleEmbed("I need the permissions to join and speak in your voice channel!");
+      message.channel.send(m1);
       break;
-    default:
-      message.channel.send(getSimpleEmbed("How the fuck did this even happen?"));
+    }
+    default: {
+      const m1 = getSimpleEmbed("How the fuck did this even happen?");
+      message.channel.send(m1);
+      break;
+    }
   }
 })
 //-->
@@ -85,79 +124,121 @@ client.on("message", async message => {
   const serverQueue = player.getQueue(message);
   const serverCurrentTrack = player.getCurrentTrack(message);
 
-  //if(serverQueue == null) player.createContract(message);
-
   // Waits until the previous command is fully processed before continuing
   await processor;
 
   processor = new Promise(async (resolve, _) => {
     switch(command) {
-      case "help":
-        message.channel.send(getHelp(message, client, args));
+      case "help": {
+        const m1 = getHelp(message, client, args);
+        message.channel.send(m1);
         break;
-      case "play":
+      }
+      case "play": {
         await player.execute(message, args.join(" "));
         break;
-      case "nowplaying":
-        if(!serverQueue) {
-          message.channel.send(getNowPlaying(null));
-          break;
-        }
-        message.channel.send(getNowPlaying(serverQueue[serverCurrentTrack]));
+      }
+      case "nowplaying": {
+        const ct = serverQueue[serverCurrentTrack];
+        const ts = Math.floor(player.getTimeStamp(message)/1000);
+        const m1 = getNowPlaying(ct, ts);
+        message.channel.send(m1);
         break;
-      case "song":
-        if(!serverQueue) {
-          message.channel.send(getSong(null));
-          break;
-        }
-        message.channel.send(getSong(serverQueue[parseInt(args[0]) - 1]));
+      }
+      case "song": {
+        const a1 =
+              args[0] == "first" || args[0] == "f" ? 0                            :
+              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
+                                                     parseInt(args[0]) - 1;
+        const ts = 
+              a1 == serverCurrentTrack ? Math.floor(player.getTimeStamp(message)/1000) : null;
+        const m1 = getSong(serverQueue[a1], ts);
+        message.channel.send(m1);
         break;
-      case "queue":
-        message.channel.send(getPrintableQueue(serverQueue, serverCurrentTrack));
+      }
+      case "queue": {
+        const m1 = getPrintableQueue(serverQueue, serverCurrentTrack);
+        message.channel.send(m1);
         break;
-      case "skip":
+      }
+      case "skip": {
         await player.skip(message);
         break;
-      case "prev":
+      }
+      case "prev": {
         await player.prev(message);
         break;
-      case "stop":
+      }
+      case "stop": {
         await player.stop(message);
         break;
-      case "jump":
-        await player.jump(message, parseInt(args[0]) - 1);
+      }
+      case "jump": {
+        const a1 =
+              args[0] == "first" || args[0] == "f" ? 0                            :
+              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
+                                                     parseInt(args[0]) - 1;
+        await player.jump(message, a1);
         break;
-      case "remove":
-        const a1 = parseInt(args[0]) - 1;
-        const a2 = parseInt(args[1]) - 1;
+      }
+      case "remove": {
+        const a1 =
+              args[0] == "first" || args[0] == "f" ? 0                            :
+              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
+                                                     parseInt(args[0]) - 1;
+        const a2 =
+              args[1] == "first" || args[1] == "f" ? 0                            :
+              args[1] == "last"  || args[1] == "l" ? serverQueue.length - 1       :
+                                                     parseInt(args[1]) - 1;
         await player.remove(message, a1, args.length < 2 ? a1 : a2);
         break;
-      case "clear":
+      }
+      case "clear": {
         await player.clear(message);
         break;
-      case "move":
-        await player.move(message, parseInt(args[0]) - 1, parseInt(args[1]) - 1);
+      }
+      case "move": {
+        const a1 =
+              args[0] == "first" || args[0] == "f" ? 0                            :
+              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
+                                                     parseInt(args[0]) - 1;
+        const a2 =
+              args[1] == "first" || args[1] == "f" ? 0                            :
+              args[1] == "last"  || args[1] == "l" ? serverQueue.length - 1       :
+                                                     parseInt(args[1]) - 1;
+        await player.move(message, a1, a2);
         break;
-      case "pause":
+      }
+      case "pause": {
         await player.pause(message);
         break;
-      case "resume":
+      }
+      case "resume": {
         await player.resume(message);
         break;
-      case "volume":
+      }
+      case "volume": {
         await player.setVolume(message, parseFloat(args[0]));
         break;
-      case "seekto":
+      }
+      case "seekto": {
         await player.seekTo(message, Math.floor(parseFloat(args[0]) * 1000));
         break;
-      case "seek":
+      }
+      case "seek": {
         await player.seek(message, Math.floor(parseFloat(args[0]) * 1000));
         break;
-      case "loop":
+      }
+      case "loop": {
         await player.loop(message, args[0]);
         break;
-      default:
-        message.channel.send(getSimpleEmbed(`Please provide a valid command! [${message.author.toString()}]`));
+      }
+      default: {
+        const mention = message.author.toString();
+        const m1 = getSimpleEmbed(`Please provide a valid command! [${mention}]`);
+        message.channel.send(m1);
+        break;
+      }
     }
 
     // Resolve after the switch statement is complete, meaning command has been carried out
@@ -170,7 +251,7 @@ client.on("message", async message => {
 client.on('voiceStateUpdate', (oldState, newState) => {
   // if nobody disconnected, then return
   if (oldState.channelID != oldState.guild.me.voice.channelID || newState.channel) return;
-  
+
   // if there is only one person left (bot), then wait two seconds
   if (oldState.channel.members.size == 1)
     setTimeout(() => {
