@@ -108,8 +108,9 @@ class Player extends EventEmitter {
         return await new Promise((resolve, _) => {
           ffmpeg.ffprobe(query, (_, metadata) => {
             if(metadata == null) return resolve(null);
+
             track.duration = Math.floor(metadata.format.duration);
-            return resolve(track);
+            resolve(track);
           })
         })
       }
