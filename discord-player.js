@@ -48,7 +48,12 @@ class Player extends EventEmitter {
       connection: null,
       volume: 1.0,
       isPlaying: false,
-      loop: "off"
+      loop: "off",
+      amq: {
+        isEnabled: false,
+        seed: Math.floor(Math.random() * 1000000000000),
+        index: 0
+      }
     }
 
     return (this.servers[message.guild.id] = contract);
@@ -59,6 +64,18 @@ class Player extends EventEmitter {
   getContract(message) {
     const contract = this.servers[message.guild.id];
     return contract ? contract : this.createContract(message);
+  }
+
+  #validateURL(str) {
+    let url;
+  
+    try {
+      url = new URL(str);
+    } catch (err) {
+      return false;  
+    }
+
+    return url.protocol === "http:" || url.protocol === "https:";
   }
 
   /* Get the track Object from a query */
@@ -87,9 +104,7 @@ class Player extends EventEmitter {
 
     try {
       // Tests if query is a media link; else it is a search query
-      const res = await fetch(query);
-      const contentType = res.headers.get("Content-Length");
-      if(contentType) {
+      if(this.#validateURL(query)) {
         return await new Promise((resolve, _) => {
           ffmpeg.ffprobe(query, (_, metadata) => {
             track.duration = Math.floor(metadata.format.duration + 0.5);
@@ -237,6 +252,60 @@ class Player extends EventEmitter {
     }
   }
 
+  /* Toggles amq mode */
+  async toggleAMQ(message) {
+    const server = this.getContract(message);
+
+    this.emit("notification", message, "amq", server.amq.isEnabled = !server.amq.isEnabled);
+  }
+
+  /* Generate an AMQ track and add it to the queue */
+  async generateAMQ(message) {
+    const server = this.getContract(message);
+
+    const seed = server.amq.seed
+    const index = server.amq.index++;
+
+    try {
+      const res = await fetch(`https://openings.moe/api/details.php?seed=${seed}&index=${index}`);
+      const json = await res.json();
+
+      const mime = json.mime[0];
+      const file = json.file;
+      const animeTitle = json.source;
+      const songDetails = json.song;
+      const title = json.title;
+      const uid = json.uid;
+
+      var track;
+      // The link will be either mp4 or webm or something (idk)
+      if(mime.startsWith("video/mp4")) {
+        const url = `https://openings.moe/video/${file}.mp4`
+        track = await this.#getTrackObject(message, url);
+      } else if(mime.startsWith("video/webm")) {
+        const url = `https://openings.moe/video/${file}.webm`
+        track = await this.#getTrackObject(message, url);
+      } else {
+        const url = `https://openings.moe/video/${file}`
+        track = await this.#getTrackObject(message, url);
+      }
+
+      track.title = `[Anime Music Quiz] ${title}`;
+      track.id = uid;
+      track.amq = {
+        title: animeTitle, 
+        song: songDetails
+      };
+
+      server.queue.push(track);
+      this.emit("notification", message, "trackAdded", track);
+
+      return track;
+    } catch(err) {
+      console.error(err);
+    }
+  }
+
   /* Skips current track and attempts to play next track, returns success */
   async skip(message) {
     // Check if there is a next track in queue
@@ -246,8 +315,19 @@ class Player extends EventEmitter {
 
     if(await this.jump(message, server.currentTrack + 1)) return true;
 
+    // If anime music quiz mode is on, then 
+    if(server.amq.isEnabled) {
+      // ; generate an AMQ track and add it to the queue
+      if (await this.generateAMQ(message)) {
+        // ; then play that enqueued track
+        await this.jump(message, server.queue.length - 1);
+      }
+      return false;
+    }
+
     server.currentTrack = server.queue.length;
     await this.stop(message);
+
     return false;
   }
 
@@ -411,7 +491,7 @@ class Player extends EventEmitter {
       this.emit("notification", message, "noResults", query);
     }
   }
-      
+
   /* Play/Enqueue hybrid function for "play" command */
   async execute(message, query) {
     const server = this.getContract(message);

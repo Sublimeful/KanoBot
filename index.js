@@ -1,6 +1,6 @@
 const { Client } = require('discord.js');
 const { prefix, token } = require("./config");
-const { formatTime, codify, getPrintableQueue, getNowPlaying, getSimpleEmbed, getMoveEmbed, getSong, getHelp } = require("./formatter");
+const { formatTime, codify, getPrintableQueue, getNowPlaying, getSimpleEmbed, getMoveEmbed, getSong, getHelp, getReveal } = require("./formatter");
 
 const Player = require("./discord-player");
 
@@ -20,7 +20,9 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "trackAdded": {
-      const m1 = getSimpleEmbed(`Track added: [${data.title}](${data.url}) [${data.requestor}]`);
+      const value = data.amq ? `Track added: **${data.title}**` : 
+                               `Track added: [${data.title}](${data.url})`
+      const m1 = getSimpleEmbed(`${value} [${data.requestor}]`);
       message.channel.send(m1);
       break;
     }
@@ -52,7 +54,7 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "noResults": {
-      const m1 = getSimpleEmbed(`No results could be found for search query: ${codify(data)}`);
+      const m1 = getSimpleEmbed(`⚠️ No results could be found for search query: ${codify(data)}`);
       message.channel.send(m1);
       break;
     }
@@ -83,6 +85,12 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
+    case "amq": {
+      const enabled = data ? "enabled" : "disabled";
+      const m1 = getSimpleEmbed(`**----- Anime Music Quiz -----** ${codify(enabled)}`);
+      message.channel.send(m1);
+      break;
+    }
     default: {
       const m1 = getSimpleEmbed("How is this even possible?");
       message.channel.send(m1);
@@ -96,12 +104,12 @@ player.on("notification", (message, type, data) => {
 player.on("error", (message, reason) => {
   switch(reason) {
     case "voiceChannel": {
-      const m1 = getSimpleEmbed("You need to be in a voice channel to play music!");
+      const m1 = getSimpleEmbed("⚠️ You need to be in a voice channel to play music!");
       message.channel.send(m1);
       break;
     }
     case "permissions": {
-      const m1 = getSimpleEmbed("I need the permissions to join and speak in your voice channel!");
+      const m1 = getSimpleEmbed("⚠️ I need permissions to join and speak in your voice channel!");
       message.channel.send(m1);
       break;
     }
@@ -233,9 +241,30 @@ client.on("message", async message => {
         await player.loop(message, args[0]);
         break;
       }
+      case "amq": {
+        switch(args[0]) {
+          case "reveal": {
+            const arg = 
+              args[1] == null                      ? serverCurrentTrack     :
+              args[1] == "first" || args[1] == "f" ? 0                      :
+              args[1] == "last"  || args[1] == "l" ? serverQueue.length - 1 :
+                                                     parseInt(args[1]) - 1;
+            const ts = 
+                 arg == serverCurrentTrack ? Math.floor(player.getTimeStamp(message)/1000) : null;
+            const m1 = getReveal(serverQueue[arg], ts);
+            message.channel.send(m1);
+            break;
+          }
+          default: {
+            await player.toggleAMQ(message);
+            break;
+          }
+        }
+        break;
+      }
       default: {
         const mention = message.author.toString();
-        const m1 = getSimpleEmbed(`Please provide a valid command! [${mention}]`);
+        const m1 = getSimpleEmbed(`⚠️ Please provide a valid command! [${mention}]`);
         message.channel.send(m1);
         break;
       }
@@ -262,7 +291,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 });
 //-->
 
-//<-- event: once ready
+//<-- event: onceready
 client.once("ready", () => {
   console.log("Ready!");
 })
