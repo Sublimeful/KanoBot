@@ -77,5 +77,9 @@ module.exports = {
     description: 'Set the loop to \"off\", \"track\" or \"queue\"',
     format: 'loop [type]'
   },
+  'amq': {
+    description: 'Toggles AMQ mode, or reveal an AMQ song',
+    format: 'amq, amq reveal, amq reveal [position]'
+  }
 }
 

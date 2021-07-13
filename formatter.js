@@ -8,8 +8,12 @@ function codify(str) {
   return `\`\`\`${str}\`\`\``;
 }
 
-function getTrack(track, title, timestamp) {
+function getTrack(track, title, timestamp, reveal = false) {
   // Timestamp is in seconds
+  const value = 
+    track.amq && reveal ? `[${track.amq.title} - ${track.title.substring(19)}](${track.url})` :
+    track.amq           ?  `${track.title}`                                                   :
+                          `[${track.title}](${track.url})`
   return {embed: {
     "color": Math.floor(Math.random() * 16777215),
     "footer": {
@@ -19,7 +23,7 @@ function getTrack(track, title, timestamp) {
     "fields": [
       {
         "name": title,
-        "value": `[${track.title}](${track.url}) [${track.requestor}]`
+        "value": `${value} [${track.requestor}]`
       }
     ],
     "thumbnail": {
@@ -61,14 +65,24 @@ function getPrintableQueue(queue, currentTrack) {
   return codify(message);
 }
 
+function getReveal(track, timestamp) {
+  if(track == null) return getSimpleEmbed("⚠️ There is no song at this position...");
+  if(track.amq == null) return getSimpleEmbed("⚠️ This is not an AMQ song...");
+
+  const title = track.amq.song.title;
+  const artist = track.amq.song.artist;
+
+  return getTrack(track, `${title} - ${artist}`, timestamp, reveal = true);
+}
+
 function getSong(track, timestamp) {
-  if(track == null) return getSimpleEmbed("There is no song at this position...");
+  if(track == null) return getSimpleEmbed("⚠️ There is no song at this position...");
   
   return getTrack(track, "---------- Song ----------", timestamp);
 }
 
 function getNowPlaying(track, timestamp) {
-  if(track == null) return getSimpleEmbed("Nothing is playing right now...");
+  if(track == null) return getSimpleEmbed("⚠️ Nothing is playing right now...");
 
   return getTrack(track, "Now Playing...", timestamp);
 }
@@ -140,6 +154,7 @@ module.exports = {
   "getSimpleEmbed": getSimpleEmbed,
   "getMoveEmbed": getMoveEmbed,
   "getSong": getSong,
-  "getHelp": getHelp
+  "getHelp": getHelp,
+  "getReveal": getReveal
 }
 
