@@ -298,8 +298,5 @@ client.once("ready", () => {
 //-->
 
 client.login(token);
-
-
-
 require('./server')();
 

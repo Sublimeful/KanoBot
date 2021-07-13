@@ -12,7 +12,8 @@
     "@discordjs/opus": "^0.5.3",
     "discord.js": "^12.5.3",
     "express": "^4.17.1",
-    "ffmpeg": "0.0.4",
+    "ffmpeg-static": "^4.4.0",
+    "ffprobe-static": "^3.0.0",
     "fluent-ffmpeg": "^2.1.2",
     "yt-search": "^2.9.0",
     "ytdl-core": "^4.8.3"

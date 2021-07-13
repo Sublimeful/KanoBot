@@ -1,9 +1,3 @@
-// 'say': {
-//   aliases: ['repeat'],
-//   description: 'Repeats whatever is said.',
-//   format: 'say <message>'
-// }
-
 module.exports = {
   'help': {
     description: 'Show a command list, or help on one command',

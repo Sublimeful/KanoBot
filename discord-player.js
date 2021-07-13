@@ -2,9 +2,10 @@ const ytdl = require("ytdl-core");
 const yts = require('yt-search');
 const fetch = require("node-fetch")
 const ffmpeg = require('fluent-ffmpeg');
+const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
 
-
+ffmpeg.setFfprobePath(ffprobe.path);
 
 class Player extends EventEmitter {
   constructor(client) {
