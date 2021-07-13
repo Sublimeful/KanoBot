@@ -53,11 +53,6 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
-    case "noResults": {
-      const m1 = getSimpleEmbed(`⚠️ No results could be found for query: ${codify(data)}`);
-      message.channel.send(m1);
-      break;
-    }
     case "pause": {
       const m1 = getSimpleEmbed("⏸ Playback has been paused!");
       message.channel.send(m1);
@@ -85,9 +80,14 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
-    case "amq": {
+    case "toggleAMQ": {
       const enabled = data ? "enabled" : "disabled";
       const m1 = getSimpleEmbed(`**----- Anime Music Quiz -----** ${codify(enabled)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "addingAMQ": {
+      const m1 = getSimpleEmbed("🤖 Generating AMQ song...");
       message.channel.send(m1);
       break;
     }
@@ -101,7 +101,7 @@ player.on("notification", (message, type, data) => {
 //-->
 
 //<-- event: onerror
-player.on("error", (message, reason) => {
+player.on("error", (message, reason, data) => {
   switch(reason) {
     case "voiceChannel": {
       const m1 = getSimpleEmbed("⚠️ You need to be in a voice channel to play music!");
@@ -110,6 +110,36 @@ player.on("error", (message, reason) => {
     }
     case "permissions": {
       const m1 = getSimpleEmbed("⚠️ I need permissions to join and speak in your voice channel!");
+      message.channel.send(m1);
+      break;
+    }
+    case "invalidArgs": {
+      const m1 = getSimpleEmbed("⚠️ Please provide valid arguments!");
+      message.channel.send(m1);
+      break;
+    }
+    case "isNotPlaying": {
+      const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
+      message.channel.send(m1);
+      break;
+    }
+    case "argsOutOfBounds": {
+      const m1 = getSimpleEmbed("⚠️ Arguments are out of bounds!");
+      message.channel.send(m1);
+      break;
+    }
+    case "invalidQuery": {
+      const m1 = getSimpleEmbed("⚠️ Please enter a valid query!");
+      message.channel.send(m1);
+      break;
+    }
+    case "noResults": {
+      const m1 = getSimpleEmbed(`⚠️ No results could be found for query: ${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "errorAddingAMQ": {
+      const m1 = getSimpleEmbed("⚠️ There was an error generating the AMQ song");
       message.channel.send(m1);
       break;
     }
@@ -131,6 +161,7 @@ client.on("message", async message => {
 
   const serverQueue = player.getQueue(message);
   const serverCurrentTrack = player.getCurrentTrack(message);
+  const serverIsPlaying = player.getIsPlaying(message);
 
   // Waits until the previous command is fully processed before continuing
   await processor;
@@ -154,12 +185,20 @@ client.on("message", async message => {
         break;
       }
       case "song": {
+        const c = (args[0] == null || args[0] == "current" || args[0] == "c");
+        if(c && serverIsPlaying == false) {
+          const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
+          message.channel.send(m1);
+          break;
+        }
         const a1 =
-              args[0] == "first" || args[0] == "f" ? 0                            :
-              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
-                                                     parseInt(args[0]) - 1;
-        const ts = 
-              a1 == serverCurrentTrack ? Math.floor(player.getTimeStamp(message)/1000) : null;
+              args[0] == null                        ? serverCurrentTrack           :
+              args[0] == "current" || args[0] == "c" ? serverCurrentTrack           :
+              args[0] == "first"   || args[0] == "f" ? 0                            :
+              args[0] == "last"    || args[0] == "l" ? serverQueue.length - 1       :
+                                                       parseInt(args[0]) - 1;
+        const tsc = (a1 == serverCurrentTrack && serverIsPlaying);
+        const ts = tsc ? Math.floor(player.getTimeStamp(message)/1000) : null;
         const m1 = getSong(serverQueue[a1], ts);
         message.channel.send(m1);
         break;
@@ -191,13 +230,16 @@ client.on("message", async message => {
       }
       case "remove": {
         const a1 =
-              args[0] == "first" || args[0] == "f" ? 0                            :
-              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
-                                                     parseInt(args[0]) - 1;
+              args[0] == "current" || args[0] == "c" ? serverCurrentTrack           :
+              args[0] == "first"   || args[0] == "f" ? 0                            :
+              args[0] == "last"    || args[0] == "l" ? serverQueue.length - 1       :
+                                                       parseInt(args[0]) - 1;
         const a2 =
-              args[1] == "first" || args[1] == "f" ? 0                            :
-              args[1] == "last"  || args[1] == "l" ? serverQueue.length - 1       :
-                                                     parseInt(args[1]) - 1;
+              args[1] == null                        ? a1                           :
+              args[1] == "current" || args[1] == "c" ? serverCurrentTrack           :
+              args[1] == "first"   || args[1] == "f" ? 0                            :
+              args[1] == "last"    || args[1] == "l" ? serverQueue.length - 1       :
+                                                       parseInt(args[1]) - 1;
         await player.remove(message, a1, args.length < 2 ? a1 : a2);
         break;
       }
@@ -207,13 +249,15 @@ client.on("message", async message => {
       }
       case "move": {
         const a1 =
-              args[0] == "first" || args[0] == "f" ? 0                            :
-              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
-                                                     parseInt(args[0]) - 1;
+              args[0] == "current" || args[0] == "c" ? serverCurrentTrack           :
+              args[0] == "first"   || args[0] == "f" ? 0                            :
+              args[0] == "last"    || args[0] == "l" ? serverQueue.length - 1       :
+                                                       parseInt(args[0]) - 1;
         const a2 =
-              args[1] == "first" || args[1] == "f" ? 0                            :
-              args[1] == "last"  || args[1] == "l" ? serverQueue.length - 1       :
-                                                     parseInt(args[1]) - 1;
+              args[1] == "current" || args[1] == "c" ? serverCurrentTrack           :
+              args[1] == "first"   || args[1] == "f" ? 0                            :
+              args[1] == "last"    || args[1] == "l" ? serverQueue.length - 1       :
+                                                       parseInt(args[1]) - 1;
         await player.move(message, a1, a2);
         break;
       }
@@ -243,20 +287,38 @@ client.on("message", async message => {
       }
       case "amq": {
         switch(args[0]) {
+          case undefined:
+          case "toggle": {
+            await player.toggleAMQ(message);
+            break;
+          }
           case "reveal": {
+            const c = (args[1] == null || args[1] == "current" || args[1] == "c");
+            if(c && serverIsPlaying == false) {
+              const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
+              message.channel.send(m1);
+              break;
+            }
             const arg = 
-              args[1] == null                      ? serverCurrentTrack     :
-              args[1] == "first" || args[1] == "f" ? 0                      :
-              args[1] == "last"  || args[1] == "l" ? serverQueue.length - 1 :
-                                                     parseInt(args[1]) - 1;
-            const ts = 
-                 arg == serverCurrentTrack ? Math.floor(player.getTimeStamp(message)/1000) : null;
+              args[1] == null                        ? serverCurrentTrack     :
+              args[1] == "current" || args[1] == "c" ? serverCurrentTrack     :
+              args[1] == "first"   || args[1] == "f" ? 0                      :
+              args[1] == "last"    || args[1] == "l" ? serverQueue.length - 1 :
+                                                       parseInt(args[1]) - 1;
+            const tsc = (arg == serverCurrentTrack && serverIsPlaying);
+            const ts = tsc ? Math.floor(player.getTimeStamp(message)/1000) : null;
             const m1 = getReveal(serverQueue[arg], ts);
             message.channel.send(m1);
             break;
           }
+          case "generate": {
+            await player.addAMQ(message);
+            break;
+          }
           default: {
-            await player.toggleAMQ(message);
+            const mention = message.author.toString();
+            const m1 = getSimpleEmbed(`⚠️ Please provide a valid command! [${mention}]`);
+            message.channel.send(m1);
             break;
           }
         }

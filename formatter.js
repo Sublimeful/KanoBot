@@ -69,10 +69,14 @@ function getReveal(track, timestamp) {
   if(track == null) return getSimpleEmbed("⚠️ There is no song at this position...");
   if(track.amq == null) return getSimpleEmbed("⚠️ This is not an AMQ song...");
 
-  const title = track.amq.song.title;
-  const artist = track.amq.song.artist;
+  if(track.amq.song) {
+    const title = track.amq.song.title;
+    const artist = track.amq.song.artist;
 
-  return getTrack(track, `${title} - ${artist}`, timestamp, reveal = true);
+    return getTrack(track, `${title} - ${artist}`, timestamp, reveal = true);
+  }
+
+  return getTrack(track, `--------- Reveal ---------`, timestamp, reveal = true);
 }
 
 function getSong(track, timestamp) {
@@ -106,7 +110,7 @@ function getHelp(message, client, args) {
         embed.addField('Command aliases', `\`${commands[command].aliases.join('`, `')}\``);
       embed
         .addField('DESCRIPTION', commands[command].description)
-        .addField('FORMAT', `\`\`\`${config.prefix}${commands[command].format}\`\`\``);
+        .addField('FORMAT', `\`\`\`${commands[command].format}\`\`\``);
     } else {
       embed
         .setColor('RED')

@@ -28,6 +28,13 @@ class Player extends EventEmitter {
     return server.queue;
   }
 
+  /* Getter for whether play is playing */
+  getIsPlaying(message) {
+    const server = this.getContract(message);
+
+    return server.isPlaying;
+  }
+
   /* Getter for current timestamp (ms) */
   getTimeStamp(message) {
     const server = this.getContract(message);
@@ -67,6 +74,7 @@ class Player extends EventEmitter {
     return contract ? contract : this.createContract(message);
   }
 
+  /* URL validator */
   #validateURL(str) {
     let url;
   
@@ -79,8 +87,50 @@ class Player extends EventEmitter {
     return url.protocol === "http:" || url.protocol === "https:";
   }
 
-  /* Get the track Object from a query */
-  async #getTrackObject(message, query) {
+  /* Generate an AMQ track Object */
+  async #generateAMQ(message) {
+    const server = this.getContract(message);
+
+    const seed = server.amq.seed
+    const index = server.amq.index++;
+
+    try {
+      const res = await fetch(`https://openings.moe/api/details.php?seed=${seed}&index=${index}`);
+      const json = await res.json();
+
+      const mime = json.mime[0];
+      const file = json.file;
+      const animeTitle = json.source;
+      const songDetails = json.song;
+      const title = json.title;
+      const uid = json.uid;
+
+      var track;
+      // The link will be either mp4 or webm or something (idk)
+      if(mime.startsWith("video/mp4")) {
+        const url = `https://openings.moe/video/${file}.mp4`
+        track = await this.#generateTrack(message, url);
+      } else if(mime.startsWith("video/webm")) {
+        const url = `https://openings.moe/video/${file}.webm`
+        track = await this.#generateTrack(message, url);
+      } else {
+        const url = `https://openings.moe/video/${file}`
+        track = await this.#generateTrack(message, url);
+      }
+
+      track.title = `[Anime Music Quiz] ${title}`;
+      track.id = uid;
+      track.amq = {
+        title: animeTitle, 
+        song: songDetails
+      };
+
+      return track;
+    } catch(err) {}
+  }
+
+  /* Generate a track Object from a query */
+  async #generateTrack(message, query) {
     const track = {
       title: "Unknown Title",
       url: query,
@@ -140,39 +190,44 @@ class Player extends EventEmitter {
   async jump(message, trackPosition) {
     const server = this.getContract(message);
 
-    if(server.queue[trackPosition]) {
-      server.currentTrack = trackPosition;
-      await this.play(message, server.queue[trackPosition]);
-      return true;
-    }
+    // Error handling
+    if(isNaN(trackPosition)) return this.emit("error", message, "invalidArgs");
+    if(trackPosition < 0 || trackPosition >= server.queue.length)
+      return this.emit("error", message, "argsOutOfBounds");
 
-    return false;
+    server.currentTrack = trackPosition;
+    await this.play(message, server.queue[trackPosition]);
   }
 
   /* Remove from "from" to "to" in queue, pretty self explanatory */
   async remove(message, from, to) {
     const server = this.getContract(message);
 
-    if(server.queue[from] && server.queue[to]) {
-      const currentTrack = server.queue[server.currentTrack];
-      const deletedTracks = server.queue.splice(Math.min(from, to), Math.abs(from - to) + 1);
+    // Error handling
+    if(isNaN(from) || isNaN(to)) return this.emit("error", message, "invalidArgs");
+    if(from < 0 || from >= server.queue.length || to < 0 || to >= server.queue.length)
+      return this.emit("error", message, "argsOutOfBounds");
 
-      // Notify the user that a change has occured!
-      this.emit("notification", message, "remove", deletedTracks);
+    const currentTrack = server.queue[server.currentTrack];
+    const deletedTracks = server.queue.splice(Math.min(from, to), Math.abs(from - to) + 1);
 
-      if(Math.min(from, to) < server.currentTrack) {
-        const min = Math.min(from, to);
-        const max = Math.max(from, to);
-        const clamp = Math.min(server.currentTrack, max + 1);
-        server.currentTrack -= clamp - min;
-      }
-      if(deletedTracks.includes(currentTrack)) {
-        if(await this.jump(message, server.currentTrack)) return;
-        if(await this.jump(message, server.queue.length - 1)) return;
+    // Notify the user that a change has occured!
+    this.emit("notification", message, "remove", deletedTracks);
 
-        server.currentTrack = -1;
-        await this.stop(message);
-      }
+    if(Math.min(from, to) < server.currentTrack) {
+      const min = Math.min(from, to);
+      const max = Math.max(from, to);
+      const clamp = Math.min(server.currentTrack, max + 1);
+      server.currentTrack -= clamp - min;
+    }
+    if(deletedTracks.includes(currentTrack)) {
+      if(server.queue[server.currentTrack])
+        return await this.jump(message, server.currentTrack);
+      if(server.queue[server.queue.length - 1])
+        return await this.jump(message, server.queue.length - 1);
+
+      server.currentTrack = -1;
+      await this.stop(message);
     }
   }
 
@@ -193,23 +248,24 @@ class Player extends EventEmitter {
 
   /* Moves the track at position "from" to position "to" */
   async move(message, from, to) {
-    if(to < 0) return;
-
     const server = this.getContract(message);
+
+    // Error handling
+    if(isNaN(from) || isNaN(to)) return this.emit("error", message, "invalidArgs");
+    if(from < 0 || from >= server.queue.length || to < 0 || to >= server.queue.length)
+      return this.emit("error", message, "argsOutOfBounds");
     
-    if(server.queue[from]) {
-      // Notify the user that a change has occured!
-      this.emit("notification", message, "move", [server.queue[from], from + 1, to + 1]);
+    // Notify the user that a change has occured!
+    this.emit("notification", message, "move", [server.queue[from], from + 1, to + 1]);
 
-      server.queue.splice(to, 0, ...server.queue.splice(from, 1));
+    server.queue.splice(to, 0, ...server.queue.splice(from, 1));
 
-      if(server.currentTrack == from) {
-        server.currentTrack = to;
-      } else if(from > server.currentTrack && to <= server.currentTrack) {
-        server.currentTrack++;
-      } else if(from < server.currentTrack && to >= server.currentTrack) {
-        server.currentTrack--;
-      }
+    if(server.currentTrack == from) {
+      server.currentTrack = to;
+    } else if(from > server.currentTrack && to <= server.currentTrack) {
+      server.currentTrack++;
+    } else if(from < server.currentTrack && to >= server.currentTrack) {
+      server.currentTrack--;
     }
   }
 
@@ -259,54 +315,27 @@ class Player extends EventEmitter {
   async toggleAMQ(message) {
     const server = this.getContract(message);
 
-    this.emit("notification", message, "amq", server.amq.isEnabled = !server.amq.isEnabled);
+    this.emit("notification", message, "toggleAMQ", server.amq.isEnabled = !server.amq.isEnabled);
   }
 
   /* Generate an AMQ track and add it to the queue */
-  async generateAMQ(message) {
+  async addAMQ(message) {
     const server = this.getContract(message);
 
-    const seed = server.amq.seed
-    const index = server.amq.index++;
+    // Generate an AMQ track
+    this.emit("notification", message, "addingAMQ");
+    const track = await this.#generateAMQ(message);
 
-    try {
-      const res = await fetch(`https://openings.moe/api/details.php?seed=${seed}&index=${index}`);
-      const json = await res.json();
-
-      const mime = json.mime[0];
-      const file = json.file;
-      const animeTitle = json.source;
-      const songDetails = json.song;
-      const title = json.title;
-      const uid = json.uid;
-
-      var track;
-      // The link will be either mp4 or webm or something (idk)
-      if(mime.startsWith("video/mp4")) {
-        const url = `https://openings.moe/video/${file}.mp4`
-        track = await this.#getTrackObject(message, url);
-      } else if(mime.startsWith("video/webm")) {
-        const url = `https://openings.moe/video/${file}.webm`
-        track = await this.#getTrackObject(message, url);
-      } else {
-        const url = `https://openings.moe/video/${file}`
-        track = await this.#getTrackObject(message, url);
-      }
-
-      track.title = `[Anime Music Quiz] ${title}`;
-      track.id = uid;
-      track.amq = {
-        title: animeTitle, 
-        song: songDetails
-      };
-
-      server.queue.push(track);
-      this.emit("notification", message, "trackAdded", track);
-
+    // Error handling
+    if(track == null) {
+      this.emit("error", message, "errorAddingAMQ");
       return track;
-    } catch(err) {
-      console.error(err);
     }
+
+    server.queue.push(track);
+    this.emit("notification", message, "trackAdded", track);
+
+    return track;
   }
 
   /* Skips current track and attempts to play next track, returns success */
@@ -316,13 +345,17 @@ class Player extends EventEmitter {
     // ; If there is no next track, then stop playback and leave the call
     const server = this.getContract(message);
 
-    if(await this.jump(message, server.currentTrack + 1)) return true;
+    // Skip to next track if there is a next track in queue
+    if(server.queue[server.currentTrack + 1]) {
+      await this.jump(message, server.currentTrack + 1);
+      return true;
+    }
 
     // If anime music quiz mode is on, then 
     if(server.amq.isEnabled) {
-      // ; generate an AMQ track and add it to the queue
-      if (await this.generateAMQ(message)) {
-        // ; then play that enqueued track
+      // ; generate and add an AMQ track
+      if (await this.addAMQ(message)) {
+        // ; then play that added track
         await this.jump(message, server.queue.length - 1);
       }
       return false;
@@ -339,7 +372,11 @@ class Player extends EventEmitter {
     // Same thing as skip but reverse
     const server = this.getContract(message);
 
-    if(await this.jump(message, server.currentTrack - 1)) return true;
+    // Skip to previous track if there is a previous track in queue
+    if(server.queue[server.currentTrack - 1]) {
+      await this.jump(message, server.currentTrack - 1);
+      return true;
+    }
 
     server.currentTrack = -1;
     await this.stop(message);
@@ -426,50 +463,58 @@ class Player extends EventEmitter {
   async seekTo(message, ms) {
     const server = this.getContract(message);
 
-    if(server.isPlaying) {
-      const track = server.queue[server.currentTrack];
-      const stream = ytdl.validateURL(track.url) ? ytdl(track.url, {filter : 'audioonly'}) : track.url;
-      ms = ms < 0 ? 0 : (ms > track.duration * 1000 ? track.duration * 1000 : ms);
+    // Error handling
+    if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
+    if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
 
-      server.connection
-        .play(stream, {seek: ms/1000})
-        .on("finish", () => {
-          if(server.loop == "track")
-            return this.jump(message, server.currentTrack);
-          if(server.currentTrack == server.queue.length - 1 && server.loop == "queue")
-            return this.jump(message, 0);
-          this.skip(message);
-        })
-        .on("error", err => {
-          this.skip(message);
-          console.log(err);
-        })
+    const track = server.queue[server.currentTrack];
+    const stream = 
+      ytdl.validateURL(track.url) ? ytdl(track.url, {filter : 'audioonly'}) : track.url;
+    ms = ms < 0 ? 0 : (ms > track.duration * 1000 ? track.duration * 1000 : ms);
 
-      // Set seek time
-      server.connection.dispatcher.seek = ms;
+    server.connection
+      .play(stream, {seek: ms/1000})
+      .on("finish", () => {
+        if(server.loop == "track")
+          return this.jump(message, server.currentTrack);
+        if(server.currentTrack == server.queue.length - 1 && server.loop == "queue")
+          return this.jump(message, 0);
+        this.skip(message);
+      })
+      .on("error", err => {
+        this.skip(message);
+        console.log(err);
+      })
 
-      // Set the volume of the playback
-      server.connection.dispatcher.setVolumeLogarithmic(server.volume);
+    // Set seek time
+    server.connection.dispatcher.seek = ms;
 
-      this.emit("notification", message, "seekTo", ms);
-    }
+    // Set the volume of the playback
+    server.connection.dispatcher.setVolumeLogarithmic(server.volume);
+
+    this.emit("notification", message, "seekTo", ms);
   }
 
   /* Seek "ms" milliseconds forward or backwards */
   async seek(message, ms) {
     const server = this.getContract(message);
 
-    if(server.isPlaying) {
-      const st = server.connection.dispatcher.streamTime;
-      const s = server.connection.dispatcher.seek;
+    // Error handling
+    if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
+    if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
 
-      await this.seekTo(message, st + ms + (s ? s : 0));
-    }
+    const st = server.connection.dispatcher.streamTime;
+    const s = server.connection.dispatcher.seek;
+
+    await this.seekTo(message, st + ms + (s ? s : 0));
   }
 
   /* Set volume (1.0 is 100%, 0.5 is 50%, etc.) */
   async setVolume(message, volume) {
     const server = this.getContract(message);
+
+    // Error handling
+    if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
 
     server.volume = volume;
     this.emit("notification", message, "setVolume", volume);
@@ -480,28 +525,33 @@ class Player extends EventEmitter {
     }
   }
 
-  /* Adds a track to the queue, returns the track */
-  async enqueue(message, query) {
+  /* Adds a track to the queue from query, returns the track */
+  async addTrack(message, query) {
     const server = this.getContract(message);
-    const track = await this.#getTrackObject(message, query);
+    const track = await this.#generateTrack(message, query);
 
-    if(track != null) {
-      server.queue.push(track);
-      this.emit("notification", message, "trackAdded", track);
-
+    // Error handling
+    if(track == null) {
+      this.emit("error", message, "noResults", query);
       return track;
-    } else {
-      this.emit("notification", message, "noResults", query);
     }
+
+    server.queue.push(track);
+    this.emit("notification", message, "trackAdded", track);
+
+    return track;
   }
 
   /* Play/Enqueue hybrid function for "play" command */
   async execute(message, query) {
     const server = this.getContract(message);
 
-    // Enqueue the track, if successfully enqueued and nothing is playing
-    if(await this.enqueue(message, query) && server.isPlaying == false) {
-      // ; then play that enqueued track
+    // Error handling, (query == false), what is that?
+    if(query == false) return this.emit("error", message, "invalidQuery");
+
+    // Add the track, if successfully added and nothing is playing
+    if(await this.addTrack(message, query) && server.isPlaying == false) {
+      // ; then play that added track
       await this.jump(message, server.queue.length - 1);
     }
   }

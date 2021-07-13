@@ -72,8 +72,8 @@ module.exports = {
     format: 'loop [type]'
   },
   'amq': {
-    description: 'Toggles AMQ mode, or reveal an AMQ song',
-    format: 'amq, amq reveal, amq reveal [position]'
+    description: 'Toggle AMQ mode, or reveal/generate a AMQ song',
+    format: 'amq, amq toggle, amq reveal, amq reveal [position], amq generate'
   }
 }
 
