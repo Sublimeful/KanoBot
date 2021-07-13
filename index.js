@@ -54,7 +54,7 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "noResults": {
-      const m1 = getSimpleEmbed(`⚠️ No results could be found for search query: ${codify(data)}`);
+      const m1 = getSimpleEmbed(`⚠️ No results could be found for query: ${codify(data)}`);
       message.channel.send(m1);
       break;
     }
