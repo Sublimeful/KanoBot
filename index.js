@@ -15,7 +15,7 @@ var processor;
 player.on("notification", (message, type, data) => {
   switch(type) {
     case "trackStart": {
-      const m1 = getNowPlaying(data);
+      const m1 = getNowPlaying(data, 0);
       message.channel.send(m1);
       break;
     }
