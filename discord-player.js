@@ -514,7 +514,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     // Error handling
-    if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
+    if(isNaN(volume)) return this.emit("error", message, "invalidArgs");
 
     server.volume = volume;
     this.emit("notification", message, "setVolume", volume);
