@@ -443,15 +443,19 @@ class Player extends EventEmitter {
   async pause(message) {
     const server = this.getContract(message);
 
-    if(server.isPlaying) {
-      server.connection.dispatcher.pause();
-      this.emit("notification", message, "pause");
-    }
+    // Error handling
+    if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
+
+    server.connection.dispatcher.pause();
+    this.emit("notification", message, "pause");
   }
 
   /* Resume playback */
   async resume(message) {
     const server = this.getContract(message);
+
+    // Error handling
+    if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
 
     if(server.isPlaying) {
       server.connection.dispatcher.resume();
