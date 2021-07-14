@@ -9,7 +9,8 @@ module.exports = {
   },
   'nowplaying': {
     description: 'Returns the description of the current song',
-    format: 'nowplaying'
+    format: 'nowplaying',
+    aliases: 'np'
   },
   'song': {
     description: 'Returns the description of the song at \"position\"',
@@ -72,8 +73,8 @@ module.exports = {
     format: 'loop [type]'
   },
   'amq': {
-    description: 'Toggle AMQ mode, or reveal/generate a AMQ song',
-    format: 'amq, amq toggle, amq reveal, amq reveal [position], amq generate'
+    description: 'Toggle AMQ mode, reveal/generate an AMQ song, or set an anime list',
+    format: 'amq, amq toggle, amq reveal, amq reveal [position], amq generate, amq mal [MyAnimeList Username]'
   }
 }
 

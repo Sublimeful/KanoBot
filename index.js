@@ -91,6 +91,11 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
+    case "setMALUsername": {
+      const m1 = getSimpleEmbed(`**----- MyAnimeList -----** ${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
     default: {
       const m1 = getSimpleEmbed("How is this even possible?");
       message.channel.send(m1);
@@ -143,6 +148,11 @@ player.on("error", (message, reason, data) => {
       message.channel.send(m1);
       break;
     }
+    case "invalidMALUsername": {
+      const m1 = getSimpleEmbed("⚠️ The MyAnimeList username is invalid!");
+      message.channel.send(m1);
+      break;
+    }
     default: {
       const m1 = getSimpleEmbed("How the fuck did this even happen?");
       message.channel.send(m1);
@@ -177,6 +187,7 @@ client.on("message", async message => {
         await player.execute(message, args.join(" "));
         break;
       }
+      case "np":
       case "nowplaying": {
         const ct = serverQueue[serverCurrentTrack];
         const ts = Math.floor(player.getTimeStamp(message)/1000);
@@ -313,6 +324,10 @@ client.on("message", async message => {
           }
           case "generate": {
             await player.addAMQ(message);
+            break;
+          }
+          case "mal": {
+            await player.setMALUsername(message, args[1]);
             break;
           }
           default: {

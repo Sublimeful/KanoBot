@@ -9,11 +9,24 @@ function codify(str) {
 }
 
 function getTrack(track, title, timestamp, reveal = false) {
+  const rS = track.amq.releaseSeason;
+  const rY = track.amq.releaseYear;
+
   // Timestamp is in seconds
-  const value = 
-    track.amq && reveal ? `[${track.amq.title} - ${track.title.substring(19)}](${track.url})` :
-    track.amq           ?  `${track.title}`                                                   :
-                          `[${track.title}](${track.url})`
+  var value;
+  if(track.amq && reveal) {
+    value =  `[${track.amq.animeTitle} - ${track.title.substring(19)}](${track.url}) `;
+    value += `[${track.requestor}]`;
+    value += `\n`;
+    value += `${rS[0].toUpperCase() + rS.substring(1)} ${rY}`;
+    value += `\n`;
+    value += `[MyAnimeList](https://myanimelist.net/anime/${track.amq.malID})`;
+  } else if(track.amq) {
+    value = `${track.title} [${track.requestor}]`;
+  } else {
+    value = `[${track.title}](${track.url}) [${track.requestor}]`;
+  }
+
   return {embed: {
     "color": Math.floor(Math.random() * 16777215),
     "footer": {
@@ -23,11 +36,11 @@ function getTrack(track, title, timestamp, reveal = false) {
     "fields": [
       {
         "name": title,
-        "value": `${value} [${track.requestor}]`
+        "value": value
       }
     ],
     "thumbnail": {
-      "url": track.thumbnail ? track.thumbnail : "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
+      "url": track.thumbnail && track.amq == null ? track.thumbnail : "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
     }
   }};
 }
@@ -69,14 +82,7 @@ function getReveal(track, timestamp) {
   if(track == null) return getSimpleEmbed("⚠️ There is no song at this position...");
   if(track.amq == null) return getSimpleEmbed("⚠️ This is not an AMQ song...");
 
-  if(track.amq.song) {
-    const title = track.amq.song.title;
-    const artist = track.amq.song.artist;
-
-    return getTrack(track, `"${title}" by ${artist}`, timestamp, reveal = true);
-  }
-
-  return getTrack(track, `--------- Reveal ---------`, timestamp, reveal = true);
+  return getTrack(track, track.amq.songName, timestamp, reveal = true);
 }
 
 function getSong(track, timestamp) {

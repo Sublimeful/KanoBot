@@ -5,8 +5,6 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
 
-ffmpeg.setFfprobePath(ffprobe.path);
-
 class Player extends EventEmitter {
   constructor(client) {
     super();
@@ -59,8 +57,7 @@ class Player extends EventEmitter {
       loop: "off",
       amq: {
         isEnabled: false,
-        seed: Math.floor(Math.random() * 1000000000000),
-        index: 0
+        mal: null
       }
     }
 
@@ -91,38 +88,52 @@ class Player extends EventEmitter {
   async #generateAMQ(message) {
     const server = this.getContract(message);
 
-    const seed = server.amq.seed
-    const index = server.amq.index++;
+    const malUsername = server.amq.mal;
 
     try {
-      const res = await fetch(`https://openings.moe/api/details.php?seed=${seed}&index=${index}`);
-      const json = await res.json();
+      var data;
 
-      const mime = json.mime[0];
-      const file = json.file;
-      const animeTitle = json.source;
-      const songDetails = json.song;
-      const title = json.title;
-      const uid = json.uid;
+      if(malUsername == null) {
+        const res = await fetch("https://themes.moe/api/roulette");
+        data = await res.json();
+      }
+      else {
+        const res = await fetch(`https://themes.moe/api/mal/${malUsername}`);
+        const json = await res.json();
 
-      var track;
-      // The link will be either mp4 or webm or something (idk)
-      if(mime.startsWith("video/mp4")) {
-        const url = `https://openings.moe/video/${file}.mp4`
-        track = await this.#generateTrack(message, url);
-      } else if(mime.startsWith("video/webm")) {
-        const url = `https://openings.moe/video/${file}.webm`
-        track = await this.#generateTrack(message, url);
-      } else {
-        const url = `https://openings.moe/video/${file}`
-        track = await this.#generateTrack(message, url);
+        if(json.error) return null;
+
+        const filter = json.filter(entry => {
+          const watchStatus = parseInt(entry.watchStatus);
+
+          // Keep the entry if the watchStatus is completed or watching
+          return (watchStatus == 1 || watchStatus == 2);
+        })
+        
+        data = filter[Math.floor(filter.length * Math.random())];
       }
 
-      track.title = `[Anime Music Quiz] ${title}`;
-      track.id = uid;
+      const theme = data.themes[Math.floor(data.themes.length * Math.random())];
+      const songType = theme.themeType;
+      const songName = theme.themeName;
+
+      const releaseSeason = data.season;
+      const releaseYear = data.year;
+      const animeTitle = data.name;
+      const malID = data.malID;
+
+      const track = await this.#generateTrack(message, `${animeTitle} ${songType}`, false);
+
+      if(track == null) return null;
+
+      track.title = `[Anime Music Quiz] ${songType}`;
       track.amq = {
-        title: animeTitle, 
-        song: songDetails
+        songType: songType,
+        songName: songName,
+        releaseSeason: releaseSeason,
+        releaseYear: releaseYear,
+        animeTitle: animeTitle,
+        malID: malID
       };
 
       return track;
@@ -130,7 +141,7 @@ class Player extends EventEmitter {
   }
 
   /* Generate a track Object from a query */
-  async #generateTrack(message, query) {
+  async #generateTrack(message, query, searchNotification = true) {
     const track = {
       title: "Unknown Title",
       url: query,
@@ -168,7 +179,7 @@ class Player extends EventEmitter {
     } catch(err) {}
 
     // Searching notification
-    this.emit("notification", message, "search", query);
+    if(searchNotification) this.emit("notification", message, "search", query);
 
     // Search for the query on Youtube, play first result
     const search = await yts(query);
@@ -309,6 +320,24 @@ class Player extends EventEmitter {
 
       return false;
     }
+  }
+
+  /* Sets the MAL Username */
+  async setMALUsername(message, username) {
+    const server = this.getContract(message);
+    
+    // Error handling
+    if(username == null) return server.amq.mal = null;
+
+    // Testing to see if the username is valid
+    const res = await fetch(`https://themes.moe/api/mal/${username}`);
+    const json = await res.json();
+
+    // ; If not, then return an error
+    if(json.error) 
+      return this.emit("error", message, "invalidMALUsername");
+
+    this.emit("notification", message, "setMALUsername", server.amq.mal = username);
   }
 
   /* Toggles amq mode */
