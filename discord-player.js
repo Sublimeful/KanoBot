@@ -5,6 +5,8 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
 
+ffmpeg.setFfprobePath(ffprobe.path);
+
 class Player extends EventEmitter {
   constructor(client) {
     super();
