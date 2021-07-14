@@ -73,7 +73,7 @@ function getReveal(track, timestamp) {
     const title = track.amq.song.title;
     const artist = track.amq.song.artist;
 
-    return getTrack(track, `${title} - ${artist}`, timestamp, reveal = true);
+    return getTrack(track, `"${title}" by ${artist}`, timestamp, reveal = true);
   }
 
   return getTrack(track, `--------- Reveal ---------`, timestamp, reveal = true);
