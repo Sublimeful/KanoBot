@@ -113,8 +113,7 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "amqChoosingFrom": {
-      const source = 
-              data == null ? "🎲 RANDOM 🎲" : data;
+      const source = data ?? "🎲 RANDOM 🎲";
       const m1 = getSimpleEmbed(`**----- Choosing From -----**${codify(source)}`);
       message.channel.send(m1);
       break;
@@ -188,11 +187,6 @@ player.on("error", (message, reason, data) => {
     }
     case "malNotInList": {
       const m1 = getSimpleEmbed(`⚠️ The username is not in the MAL list!${codify(data)}`);
-      message.channel.send(m1);
-      break;
-    }
-    case "noPlayableMALSongs": {
-      const m1 = getSimpleEmbed(`⚠️ This user has no playable MAL songs!${codify(data)}`);
       message.channel.send(m1);
       break;
     }

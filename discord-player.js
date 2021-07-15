@@ -1,9 +1,17 @@
-const ytdl = require("ytdl-core");
-const yts = require('yt-search');
 const fetch = require("node-fetch")
 const ffmpeg = require('fluent-ffmpeg');
 const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
+const ytdl = require("ytdl-core");
+const yts = require("yt-search");
+
+const { getAnimeInfo, getQueryType } = require("./utils");
+
+const spotify = require("spotify-url-info");
+const sc = require("soundcloud-scraper");
+const YouTube = require('youtube-sr');
+
+const SoundCloud = new sc.Client();
 
 ffmpeg.setFfprobePath(ffprobe.path);
 
@@ -85,19 +93,6 @@ class Player extends EventEmitter {
     return contract ? contract : this.createContract(message);
   }
 
-  /* URL validator */
-  #validateURL(str) {
-    let url;
-  
-    try {
-      url = new URL(str);
-    } catch (err) {
-      return false;  
-    }
-
-    return url.protocol === "http:" || url.protocol === "https:";
-  }
-
   /* Generate an AMQ track Object */
   async #generateAMQ(message) {
     const server = this.getContract(message);
@@ -107,84 +102,39 @@ class Player extends EventEmitter {
     let username = null;
     let rand = Math.random();
 
-    if(rand < server.amq.mal.chance) {
-      username = 
-        usernames.length > 0 ? usernames[Math.floor(usernames.length * Math.random())] : null;
+    if(rand < server.amq.mal.chance && usernames.length != 0) {
+      username = usernames[Math.floor(usernames.length * Math.random())];
     }
 
     this.emit("notification", message, "amqChoosingFrom", username);
 
-    try {
-      let anime;
+    const anime = await getAnimeInfo();
 
-      if(username == null) {
-        const res = await fetch("https://themes.moe/api/roulette");
+    const theme = anime.themes[Math.floor(anime.themes.length * Math.random())];
+    const songType = theme.themeType;
+    const songName = theme.themeName;
 
-        // If something failed with the api, then return null
-        if(!res.ok) return null;
+    const releaseSeason = anime.season;
+    const releaseYear = anime.year;
+    const animeTitle = anime.name;
+    const malID = anime.malID;
 
-        anime = await res.json();
-      }
-      else {
-        const res = await fetch(`https://api.jikan.moe/v3/user/${username}/animelist`);
+    const track = 
+      await this.#generateTrack(message, `${songName} - ${animeTitle} ${songType}`, true);
 
-        // If something failed with the api or username is invalid, then return null
-        if(!res.ok) return null;
+    if(track == null) return null;
 
-        const json = await res.json();
+    track.title = `[Anime Music Quiz] ${songType}`;
+    track.amq = {
+      songType: songType,
+      songName: songName,
+      releaseSeason: releaseSeason,
+      releaseYear: releaseYear,
+      animeTitle: animeTitle,
+      malID: malID
+    };
 
-        const entries = json.anime;
-
-        const filter = entries.filter(entry => {
-          const watchStatus = parseInt(entry.watching_status);
-
-          // Keep the entry if the watchStatus is completed or watching
-          return (watchStatus == 1 || watchStatus == 2);
-        })
-
-        if(filter.length == 0) {
-          this.emit("error", message, "noPlayableMALSongs", username);
-          return null;
-        }
-        
-        const entry = filter[Math.floor(filter.length * Math.random())];
-
-        const r = await fetch(`https://themes.moe/api/themes/${entry.mal_id}`);
-
-        // If something failed with the api
-        // ; Or if the api does not recognize the mal_id, then return null
-        if(!r.ok) return null;
-
-        // The object is returned in a single-sized list for some reason
-        anime = (await r.json())[0];
-      }
-
-      const theme = anime.themes[Math.floor(anime.themes.length * Math.random())];
-      const songType = theme.themeType;
-      const songName = theme.themeName;
-
-      const releaseSeason = anime.season;
-      const releaseYear = anime.year;
-      const animeTitle = anime.name;
-      const malID = anime.malID;
-
-      const track = 
-        await this.#generateTrack(message, `${songName} - ${animeTitle} ${songType}`, true);
-
-      if(track == null) return null;
-
-      track.title = `[Anime Music Quiz] ${songType}`;
-      track.amq = {
-        songType: songType,
-        songName: songName,
-        releaseSeason: releaseSeason,
-        releaseYear: releaseYear,
-        animeTitle: animeTitle,
-        malID: malID
-      };
-
-      return track;
-    } catch(err) {}
+    return track;
   }
 
   /* Generate a track Object from a query */
@@ -194,25 +144,28 @@ class Player extends EventEmitter {
       url: query,
       duration: null,
       thumbnail: null,
-      requestor: message.author.toString()
+      requestor: message.author.toString(),
+      source: null
     }
 
-    if(ytdl.validateURL(query)) {
-      // If query is a Youtube link
-      const videoInfo = await ytdl.getBasicInfo(query);
-      const videoDetails = videoInfo.videoDetails;
+    const queryType = getQueryType(query);
 
-      track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
-      track.title = videoDetails.title;
-      track.duration = parseInt(videoDetails.lengthSeconds);
-      track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
+    console.log(queryType);
 
-      return track;
-    }
+    switch(queryType) {
+      case 'youtube_video': {
+        const videoInfo = await ytdl.getBasicInfo(query);
+        const videoDetails = videoInfo.videoDetails;
 
-    try {
-      // Tests if query is a media link; else it is a search query
-      if(this.#validateURL(query)) {
+        track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
+        track.title = videoDetails.title;
+        track.duration = parseInt(videoDetails.lengthSeconds);
+        track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
+        track.source = 'youtube'
+
+        return track;
+      }
+      case 'attachment': {
         return await new Promise((resolve, _) => {
           ffmpeg.ffprobe(query, (_, metadata) => {
             if(metadata == null) return resolve(null);
@@ -222,27 +175,28 @@ class Player extends EventEmitter {
               track.title = metadata.format.tags[Object.keys(metadata.format.tags)[0]];
 
             track.duration = Math.floor(metadata.format.duration);
+            track.source = 'arbitrary'
+
             resolve(track);
           })
         })
       }
-    } catch(err) {}
+      default: {
+        // Search for the query on Youtube, play first result
+        const search = await yts(query);
 
-    // Searching notification
-    if(!suppress) this.emit("notification", message, "search", query);
+        if(search.videos.length == 0) return null;
 
-    // Search for the query on Youtube, play first result
-    const search = await yts(query);
+        const video = search.videos[0];
 
-    if(search.videos.length > 0) {
-      const video = search.videos[0];
+        track.title = video.title;
+        track.url = video.url;
+        track.duration = video.seconds;
+        track.thumbnail = video.thumbnail;
+        track.source = 'youtube'
 
-      track.title = video.title;
-      track.url = video.url;
-      track.duration = video.seconds;
-      track.thumbnail = video.thumbnail;
-
-      return track;
+        return track;
+      }
     }
   }
 
@@ -302,6 +256,9 @@ class Player extends EventEmitter {
 
     // Notify the user that a change has occured!
     this.emit("notification", message, "clear");
+
+    // Stop playback if playing something
+    if(!server.isPlaying) return;
 
     server.currentTrack = -1;
     await this.stop(message);
@@ -544,10 +501,16 @@ class Player extends EventEmitter {
 
     const server = this.getContract(message);
 
+    let stream;
+
+    if(track.source == "youtube" || track.source == "spotify") {
+      stream = ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0});
+    } else {
+      stream = track.url;
+    }
+
     server.connection
-      .play(ytdl.validateURL(track.url) ? 
-            ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0})
-      : track.url)
+      .play(stream, { bitrate: 'auto' })
       .on("finish", () => {
         if(server.loop == "track")
           return this.jump(message, server.currentTrack);
@@ -603,10 +566,16 @@ class Player extends EventEmitter {
 
     ms = ms < 0 ? 0 : (ms > track.duration * 1000 ? track.duration * 1000 : ms);
 
+    let stream;
+
+    if(track.source == "youtube" || track.source == "spotify") {
+      stream = ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0});
+    } else {
+      stream = track.url;
+    }
+
     server.connection
-      .play(ytdl.validateURL(track.url) ? 
-            ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0})
-      : track.url, {seek: ms/1000})
+      .play(stream, { bitrate: 'auto', seek: ms/1000 })
       .on("finish", () => {
         if(server.loop == "track")
           return this.jump(message, server.currentTrack);
