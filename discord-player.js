@@ -192,19 +192,18 @@ class Player extends EventEmitter {
     const track = {
       title: "Unknown Title",
       url: query,
-      id: null,
       duration: null,
       thumbnail: null,
-      requestor: message.author.toString()
+      requestor: message.author.toString(),
     }
 
     if(ytdl.validateURL(query)) {
-      // Tests if query is a Youtube link
-      const ytdlInfo = await ytdl.getInfo(query);
-      const videoDetails = ytdlInfo.videoDetails;
+      // If query is a Youtube link
+      const videoInfo = await ytdl.getBasicInfo(query);
+      const videoDetails = videoInfo.videoDetails;
 
+      track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
       track.title = videoDetails.title;
-      track.id = videoDetails.videoId;
       track.duration = parseInt(videoDetails.lengthSeconds);
       track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
 
@@ -217,6 +216,10 @@ class Player extends EventEmitter {
         return await new Promise((resolve, _) => {
           ffmpeg.ffprobe(query, (_, metadata) => {
             if(metadata == null) return resolve(null);
+
+            // Sets the title to the first metadata tag if there is one
+            if(metadata.format.tags)
+              track.title = metadata.format.tags[Object.keys(metadata.format.tags)[0]];
 
             track.duration = Math.floor(metadata.format.duration);
             resolve(track);
@@ -236,7 +239,6 @@ class Player extends EventEmitter {
 
       track.title = video.title;
       track.url = video.url;
-      track.id = video.videoId;
       track.duration = video.seconds;
       track.thumbnail = video.thumbnail;
 
@@ -543,7 +545,9 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     server.connection
-      .play(ytdl.validateURL(track.url) ? ytdl(track.url, {filter : 'audioonly'}) : track.url)
+      .play(ytdl.validateURL(track.url) ? 
+            ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0})
+      : track.url)
       .on("finish", () => {
         if(server.loop == "track")
           return this.jump(message, server.currentTrack);
@@ -596,12 +600,13 @@ class Player extends EventEmitter {
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
 
     const track = server.queue[server.currentTrack];
-    const stream = 
-      ytdl.validateURL(track.url) ? ytdl(track.url, {filter : 'audioonly'}) : track.url;
+
     ms = ms < 0 ? 0 : (ms > track.duration * 1000 ? track.duration * 1000 : ms);
 
     server.connection
-      .play(stream, {seek: ms/1000})
+      .play(ytdl.validateURL(track.url) ? 
+            ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0})
+      : track.url, {seek: ms/1000})
       .on("finish", () => {
         if(server.loop == "track")
           return this.jump(message, server.currentTrack);
@@ -669,6 +674,7 @@ class Player extends EventEmitter {
     }
 
     server.queue.push(track);
+
     this.emit("notification", message, "trackAdded", track);
 
     return track;

@@ -29,7 +29,7 @@ function getTrack(track, title, timestamp, reveal = false) {
     "color": Math.floor(Math.random() * 16777215),
     "footer": {
       "icon_url": "https://images-na.ssl-images-amazon.com/images/I/71a04y-NNgL.png",
-      "text": `${timestamp != null ? formatTime(timestamp) : "--:--"}/${formatTime(track.duration)}`
+      "text": `${timestamp != null ? formatTime(timestamp) : "--:--"}/${isNaN(track.duration) ? "∞" : formatTime(track.duration)}`
     },
     "fields": [
       {
