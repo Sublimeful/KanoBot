@@ -1,6 +1,4 @@
 const { MessageEmbed } = require("discord.js")
-const commands = require("./help");
-const config = require("./config");
 
 
 
@@ -9,16 +7,16 @@ function codify(str) {
 }
 
 function getTrack(track, title, timestamp, reveal = false) {
-  const rS = track.amq.releaseSeason;
-  const rY = track.amq.releaseYear;
-
   // Timestamp is in seconds
   var value;
   if(track.amq && reveal) {
-    value =  `[${track.amq.animeTitle} - ${track.title.substring(19)}](${track.url}) `;
+    const rS = track.amq.releaseSeason;
+    const rY = track.amq.releaseYear;
+
+    value =  `[${track.amq.animeTitle} - ${track.title.substr(19)}](${track.url}) `;
     value += `[${track.requestor}]`;
     value += `\n`;
-    value += `${rS[0].toUpperCase() + rS.substring(1)} ${rY}`;
+    value += `${rS[0].toUpperCase() + rS.substr(1)} ${rY}`;
     value += `\n`;
     value += `[MyAnimeList](https://myanimelist.net/anime/${track.amq.malID})`;
   } else if(track.amq) {
@@ -82,7 +80,7 @@ function getReveal(track, timestamp) {
   if(track == null) return getSimpleEmbed("⚠️ There is no song at this position...");
   if(track.amq == null) return getSimpleEmbed("⚠️ This is not an AMQ song...");
 
-  return getTrack(track, track.amq.songName, timestamp, reveal = true);
+  return getTrack(track, `"${track.amq.songName}"`, timestamp, reveal = true);
 }
 
 function getSong(track, timestamp) {
@@ -97,32 +95,53 @@ function getNowPlaying(track, timestamp) {
   return getTrack(track, "Now Playing...", timestamp);
 }
 
-function getHelp(message, client, args) {
-  let embed =  new MessageEmbed()
+function getHelp(message, client, arg) {
+  var embed = new MessageEmbed();
+
+  const commands = require("./help");
+  const commandNames = Object.keys(commands);
+  const longestCommand = Object.keys(commands).reduce((a, b) => b.length > a.length ? b : a, '');
+
+  const find = arg.toLowerCase();
+  const requestor = message.member ? message.member.displayName : message.author.username;
+    
+  embed
     .setTitle('HELP MENU')
     .setColor('GREEN')
-    .setFooter(`Requested by: ${message.member ? message.member.displayName : message.author.username}`, message.author.displayAvatarURL())
-    .setThumbnail(client.user.displayAvatarURL());
-  if (!args[0])
-    embed
-      .setDescription(Object.keys(commands).map(command => `\`${command.padEnd(Object.keys(commands).reduce((a, b) => b.length > a.length ? b : a, '').length)}\` :: ${commands[command].description}`).join('\n'));
-  else {
-    if (Object.keys(commands).includes(args[0].toLowerCase()) || Object.keys(commands).map(c => commands[c].aliases || []).flat().includes(args[0].toLowerCase())) {
-      let command = Object.keys(commands).includes(args[0].toLowerCase())? args[0].toLowerCase() : Object.keys(commands).find(c => commands[c].aliases && commands[c].aliases.includes(args[0].toLowerCase()));
-      embed
-        .setTitle(`COMMAND - ${command}`)
+    .setFooter(`Requested by: ${requestor}`, message.author.displayAvatarURL())
+    .setThumbnail(client.user.displayAvatarURL())
 
-      if (commands[command].aliases)
-        embed.addField('Command aliases', `\`${commands[command].aliases.join('`, `')}\``);
-      embed
-        .addField('DESCRIPTION', commands[command].description)
-        .addField('FORMAT', `\`\`\`${commands[command].format}\`\`\``);
-    } else {
-      embed
-        .setColor('RED')
-        .setDescription('This command does not exist. Please use the help command without specifying any commands to list them all.');
-    }
+  if (find == "") {
+    embed
+      .setDescription(commandNames.map(c => {
+        return `\`${c.padEnd(longestCommand.length)}\` :: ${commands[c].description}`;
+      }).join('\n'))
+
+    return embed;
   }
+
+  var command = commandNames.includes(find) ? find : commandNames.find(name => {
+    return commands[name].aliases && commands[name].aliases.includes(find)
+  })
+
+  if (command != undefined) {
+    embed
+      .setTitle(`COMMAND - ${command}`)
+
+    if (commands[command].aliases)
+      embed.addField('Command aliases', `\`${commands[command].aliases.join('`, `')}\``);
+
+    embed
+      .addField('DESCRIPTION', commands[command].description)
+      .addField('FORMAT', `\`\`\`${commands[command].format}\`\`\``);
+
+    return embed;
+  }
+
+  embed
+    .setColor('RED')
+    .setDescription('This command does not exist. Please use the help command without specifying any commands to list them all.');
+
   return embed;
 }
 

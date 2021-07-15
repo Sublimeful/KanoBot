@@ -7,6 +7,8 @@ const EventEmitter = require('events');
 
 ffmpeg.setFfprobePath(ffprobe.path);
 
+
+
 class Player extends EventEmitter {
   constructor(client) {
     super();
@@ -26,6 +28,13 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     return server.queue;
+  }
+
+  /* Getter for MAL usernames */
+  getMALUsernames(message) {
+    const server = this.getContract(message);
+
+    return server.amq.mal.usernames;
   }
 
   /* Getter for whether play is playing */
@@ -59,7 +68,10 @@ class Player extends EventEmitter {
       loop: "off",
       amq: {
         isEnabled: false,
-        mal: null
+        mal: {
+          chance: 1.0,
+          usernames: []
+        }
       }
     }
 
@@ -90,41 +102,74 @@ class Player extends EventEmitter {
   async #generateAMQ(message) {
     const server = this.getContract(message);
 
-    const malUsername = server.amq.mal;
+    const usernames = server.amq.mal.usernames;
+
+    var username = null;
+    var rand = Math.random();
+
+    if(rand < server.amq.mal.chance) {
+      username = 
+        usernames.length > 0 ? usernames[Math.floor(usernames.length * Math.random())] : null;
+    }
+
+    this.emit("notification", message, "amqChoosingFrom", username);
 
     try {
-      var data;
+      var anime;
 
-      if(malUsername == null) {
+      if(username == null) {
         const res = await fetch("https://themes.moe/api/roulette");
-        data = await res.json();
+
+        // If something failed with the api, then return null
+        if(!res.ok) return null;
+
+        anime = await res.json();
       }
       else {
-        const res = await fetch(`https://themes.moe/api/mal/${malUsername}`);
+        const res = await fetch(`https://api.jikan.moe/v3/user/${username}/animelist`);
+
+        // If something failed with the api or username is invalid, then return null
+        if(!res.ok) return null;
+
         const json = await res.json();
 
-        if(json.error) return null;
+        const entries = json.anime;
 
-        const filter = json.filter(entry => {
-          const watchStatus = parseInt(entry.watchStatus);
+        const filter = entries.filter(entry => {
+          const watchStatus = parseInt(entry.watching_status);
 
           // Keep the entry if the watchStatus is completed or watching
           return (watchStatus == 1 || watchStatus == 2);
         })
+
+        if(filter.length == 0) {
+          this.emit("error", message, "noPlayableMALSongs", username);
+          return null;
+        }
         
-        data = filter[Math.floor(filter.length * Math.random())];
+        const entry = filter[Math.floor(filter.length * Math.random())];
+
+        const r = await fetch(`https://themes.moe/api/themes/${entry.mal_id}`);
+
+        // If something failed with the api
+        // ; Or if the api does not recognize the mal_id, then return null
+        if(!r.ok) return null;
+
+        // The object is returned in a single-sized list for some reason
+        anime = (await r.json())[0];
       }
 
-      const theme = data.themes[Math.floor(data.themes.length * Math.random())];
+      const theme = anime.themes[Math.floor(anime.themes.length * Math.random())];
       const songType = theme.themeType;
       const songName = theme.themeName;
 
-      const releaseSeason = data.season;
-      const releaseYear = data.year;
-      const animeTitle = data.name;
-      const malID = data.malID;
+      const releaseSeason = anime.season;
+      const releaseYear = anime.year;
+      const animeTitle = anime.name;
+      const malID = anime.malID;
 
-      const track = await this.#generateTrack(message, `${animeTitle} ${songType}`, false);
+      const track = 
+        await this.#generateTrack(message, `${songName} - ${animeTitle} ${songType}`, true);
 
       if(track == null) return null;
 
@@ -143,7 +188,7 @@ class Player extends EventEmitter {
   }
 
   /* Generate a track Object from a query */
-  async #generateTrack(message, query, searchNotification = true) {
+  async #generateTrack(message, query, suppress = false) {
     const track = {
       title: "Unknown Title",
       url: query,
@@ -181,7 +226,7 @@ class Player extends EventEmitter {
     } catch(err) {}
 
     // Searching notification
-    if(searchNotification) this.emit("notification", message, "search", query);
+    if(!suppress) this.emit("notification", message, "search", query);
 
     // Search for the query on Youtube, play first result
     const search = await yts(query);
@@ -248,15 +293,16 @@ class Player extends EventEmitter {
   async clear(message) {
     const server = this.getContract(message);
 
-    if(server.queue.length > 0) {
-      server.queue = [];
+    // Error handling
+    if(server.queue.length == 0) return this.emit("error", message, "queueIsEmpty");
 
-      // Notify the user that a change has occured!
-      this.emit("notification", message, "clear");
+    server.queue = [];
 
-      server.currentTrack = -1;
-      await this.stop(message);
-    }
+    // Notify the user that a change has occured!
+    this.emit("notification", message, "clear");
+
+    server.currentTrack = -1;
+    await this.stop(message);
   }
 
   /* Moves the track at position "from" to position "to" */
@@ -324,22 +370,68 @@ class Player extends EventEmitter {
     }
   }
 
-  /* Sets the MAL Username */
-  async setMALUsername(message, username) {
+  /* Add a MAL account */
+  async addMAL(message, username) {
     const server = this.getContract(message);
     
     // Error handling
-    if(username == null) return server.amq.mal = null;
+    if(username == null) return this.emit("error", message, "invalidArgs");
 
     // Testing to see if the username is valid
-    const res = await fetch(`https://themes.moe/api/mal/${username}`);
-    const json = await res.json();
+    const res = await fetch(`https://api.jikan.moe/v3/user/${username}`);
 
     // ; If not, then return an error
-    if(json.error) 
-      return this.emit("error", message, "invalidMALUsername");
+    if(!res.ok) 
+      return this.emit("error", message, "invalidMALUsername", username);
 
-    this.emit("notification", message, "setMALUsername", server.amq.mal = username);
+    server.amq.mal.usernames.push(username);
+    this.emit("notification", message, "malAdd", username);
+  }
+
+  /* Removes a MAL account */
+  async delMAL(message, username) {
+    const server = this.getContract(message);
+
+    //Error handling
+    if(username == null) return this.emit("error", message, "invalidArgs");
+    if(!server.amq.mal.usernames.includes(username))
+      return this.emit("error", message, "malNotInList", username);
+      
+    const index = server.amq.mal.usernames.indexOf(username);
+
+    server.amq.mal.usernames.splice(index, 1);
+
+    this.emit("notification", message, "malDel", username);
+  }
+
+  /* Removes all MAL accounts */
+  async clearMAL(message) {
+    const server = this.getContract(message);
+
+    // Error handling
+    if(server.amq.mal.usernames.length == 0) return this.emit("error", message, "malListEmpty")
+
+    server.amq.mal.usernames = [];
+
+    this.emit("notification", message, "malClear");
+  }
+
+  /* Set the chance that MAL is chosen instead of random */
+  async setMALChance(message, chance) {
+    const server = this.getContract(message);
+
+    // Error handling
+    if(isNaN(chance)) return this.emit("error", message, "invalidArgs");
+
+    // Turn chance into range [0.0 - 1.0]
+    chance = chance / 100;
+
+    // Limits and thresholds
+    if(chance < 0) chance = 0;
+    if(chance > 1) chance = 1;
+
+    server.amq.mal.chance = chance;
+    this.emit("notification", message, "malChanceSet", server.amq.mal.chance);
   }
 
   /* Toggles amq mode */
@@ -418,9 +510,10 @@ class Player extends EventEmitter {
   async stop(message) {
     const server = this.getContract(message);
 
-    if(server.connection) {
-      server.connection.disconnect();
-    }
+    // Error handling
+    if(!server.connection) return this.emit("error", message, "isNotPlaying");
+
+    server.connection.disconnect();
   }
 
   /* Set loop options */
@@ -550,6 +643,10 @@ class Player extends EventEmitter {
 
     // Error handling
     if(isNaN(volume)) return this.emit("error", message, "invalidArgs");
+
+    // Limits and thresholds
+    if(volume < 0) volume = 0;
+    if(volume > 2) volume = 2;
 
     server.volume = volume;
     this.emit("notification", message, "setVolume", volume);

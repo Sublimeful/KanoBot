@@ -10,7 +10,7 @@ module.exports = {
   'nowplaying': {
     description: 'Returns the description of the current song',
     format: 'nowplaying',
-    aliases: 'np'
+    aliases: ['np']
   },
   'song': {
     description: 'Returns the description of the song at \"position\"',
@@ -57,7 +57,7 @@ module.exports = {
     format: 'resume'
   },
   'volume': {
-    description: 'Sets playback volume (1.0 is 100%, 0.5 is 50%, etc.)',
+    description: 'Sets playback volume (1.0 is 100%, etc.)',
     format: 'volume [value]'
   },
   'seekto': {
@@ -72,9 +72,37 @@ module.exports = {
     description: 'Set the loop to \"off\", \"track\" or \"queue\"',
     format: 'loop [type]'
   },
-  'amq': {
-    description: 'Toggle AMQ mode, reveal/generate an AMQ song, or set an anime list',
-    format: 'amq, amq toggle, amq reveal, amq reveal [position], amq generate, amq mal [MyAnimeList Username]'
+  'amq toggle': {
+    description: 'Toggles AMQ mode (Anime Music Quiz)',
+    format: 'amq, amq toggle'
+  },
+  'amq reveal': {
+    description: 'Reveals an AMQ song',
+    format: 'amq reveal, amq reveal [position]'
+  },
+  'amq generate': {
+    description: 'Generates an AMQ song',
+    format: 'amq generate'
+  },
+  'amq mal add': {
+    description: 'Adds a MAL account',
+    format: 'amq mal add [MyAnimeList Username]'
+  },
+  'amq mal del': {
+    description: 'Removes a MAL account',
+    format: 'amq mal del [MyAnimeList Username]'
+  },
+  'amq mal clear': {
+    description: 'Removes all MAL accounts',
+    format: 'amq mal clear'
+  },
+  'amq mal chance': {
+    description: 'Sets the chance that AMQ will use MAL',
+    format: 'amq mal chance [0.0 - 100.0]'
+  },
+  'amq mal list': {
+    description: 'Lists all the usernames in the MAL list',
+    format: 'amq mal list'
   }
 }
 

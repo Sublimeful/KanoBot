@@ -49,7 +49,7 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "search": {
-      const m1 = getSimpleEmbed(`**----- Searching for -----** ${codify(data)}`);
+      const m1 = getSimpleEmbed(`**----- Searching for -----**${codify(data)}`);
       message.channel.send(m1);
       break;
     }
@@ -65,24 +65,24 @@ player.on("notification", (message, type, data) => {
     }
     case "seekTo": {
       const ts = formatTime(Math.floor(data/1000));
-      const m1 = getSimpleEmbed(`**----- Seeked to -----** ${codify(ts)}`);
+      const m1 = getSimpleEmbed(`**----- Seeked to -----**${codify(ts)}`);
       message.channel.send(m1);
       break;
     }
     case "setVolume": {
       const vol = `${Math.floor(data * 100)}%`;
-      const m1 = getSimpleEmbed(`**----- New volume -----** ${codify(vol)}`);
+      const m1 = getSimpleEmbed(`**----- New volume -----**${codify(vol)}`);
       message.channel.send(m1);
       break;
     }
     case "loop": {
-      const m1 = getSimpleEmbed(`**----- Loop -----** ${codify(data)}`);
+      const m1 = getSimpleEmbed(`**----- Loop -----**${codify(data)}`);
       message.channel.send(m1);
       break;
     }
     case "toggleAMQ": {
-      const enabled = data ? "enabled" : "disabled";
-      const m1 = getSimpleEmbed(`**----- Anime Music Quiz -----** ${codify(enabled)}`);
+      const enabled = data ? "Enabled" : "Disabled";
+      const m1 = getSimpleEmbed(`**----- Anime Music Quiz -----**${codify(enabled)}`);
       message.channel.send(m1);
       break;
     }
@@ -91,8 +91,31 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
-    case "setMALUsername": {
-      const m1 = getSimpleEmbed(`**----- MyAnimeList -----** ${codify(data)}`);
+    case "malAdd": {
+      const m1 = getSimpleEmbed(`**----- MyAnimeList Added -----**${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "malDel": {
+      const m1 = getSimpleEmbed(`**----- MyAnimeList Removed -----**${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "malClear": {
+      const m1 = getSimpleEmbed("🗑️ Cleared the MAL list!");
+      message.channel.send(m1);
+      break;
+    }
+    case "malChanceSet": {
+      const chance = `${(data * 100).toFixed(1)}%`;
+      const m1 = getSimpleEmbed(`**----- MyAnimeList Chance -----**${codify(chance)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "amqChoosingFrom": {
+      const source = 
+              data == null ? "🎲 RANDOM 🎲" : data;
+      const m1 = getSimpleEmbed(`**----- Choosing From -----**${codify(source)}`);
       message.channel.send(m1);
       break;
     }
@@ -139,7 +162,7 @@ player.on("error", (message, reason, data) => {
       break;
     }
     case "noResults": {
-      const m1 = getSimpleEmbed(`⚠️ No results could be found for query: ${codify(data)}`);
+      const m1 = getSimpleEmbed(`⚠️ No results could be found for query:${codify(data)}`);
       message.channel.send(m1);
       break;
     }
@@ -149,7 +172,27 @@ player.on("error", (message, reason, data) => {
       break;
     }
     case "invalidMALUsername": {
-      const m1 = getSimpleEmbed("⚠️ The MyAnimeList username is invalid!");
+      const m1 = getSimpleEmbed(`⚠️ This MyAnimeList username is invalid!${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "queueIsEmpty": {
+      const m1 = getSimpleEmbed("⚠️ The queue is empty!");
+      message.channel.send(m1);
+      break;
+    }
+    case "malListEmpty": {
+      const m1 = getSimpleEmbed("⚠️ The MAL list is empty!");
+      message.channel.send(m1);
+      break;
+    }
+    case "malNotInList": {
+      const m1 = getSimpleEmbed(`⚠️ The username is not in the MAL list!${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "noPlayableMALSongs": {
+      const m1 = getSimpleEmbed(`⚠️ This user has no playable MAL songs!${codify(data)}`);
       message.channel.send(m1);
       break;
     }
@@ -179,7 +222,7 @@ client.on("message", async message => {
   processor = new Promise(async (resolve, _) => {
     switch(command) {
       case "help": {
-        const m1 = getHelp(message, client, args);
+        const m1 = getHelp(message, client, args.join(" "));
         message.channel.send(m1);
         break;
       }
@@ -327,7 +370,51 @@ client.on("message", async message => {
             break;
           }
           case "mal": {
-            await player.setMALUsername(message, args[1]);
+            switch(args[1]) {
+              case "list": {
+                const usernames = player.getMALUsernames(message);
+
+                if(usernames.length == 0) {
+                  const m1 = getSimpleEmbed("⚠️ There are no usernames in the MAL list");
+                  message.channel.send(m1);
+                  break;
+                }
+
+                var val = "";
+
+                usernames.forEach(username => {
+                  val += `${username}, `;
+                })
+
+                val = val.substr(0, val.length - 2);
+
+                const m1 = getSimpleEmbed(codify(val));
+                message.channel.send(m1);
+                break;
+              }
+              case "add": {
+                await player.addMAL(message, args[2]);
+                break;
+              }
+              case "del": {
+                await player.delMAL(message, args[2]);
+                break;
+              }
+              case "clear": {
+                await player.clearMAL(message);
+                break;
+              }
+              case "chance": {
+                await player.setMALChance(message, parseFloat(args[2]));
+                break;
+              }
+              default: {
+                const mention = message.author.toString();
+                const m1 = getSimpleEmbed(`⚠️ Please provide a valid command! [${mention}]`);
+                message.channel.send(m1);
+                break;
+              }
+            }
             break;
           }
           default: {
