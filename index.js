@@ -112,10 +112,10 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
-    case "amqChoosingFrom": {
+    case "amqPickingFrom": {
       const source = 
               data == null ? "🎲 RANDOM 🎲" : data;
-      const m1 = getSimpleEmbed(`**----- Choosing From -----**${codify(source)}`);
+      const m1 = getSimpleEmbed(`**----- Picking From -----**${codify(source)}`);
       message.channel.send(m1);
       break;
     }

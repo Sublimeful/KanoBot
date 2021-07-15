@@ -112,7 +112,7 @@ class Player extends EventEmitter {
         usernames.length > 0 ? usernames[Math.floor(usernames.length * Math.random())] : null;
     }
 
-    this.emit("notification", message, "amqChoosingFrom", username);
+    this.emit("notification", message, "amqPickingFrom", username);
 
     try {
       let anime;
