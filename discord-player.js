@@ -194,7 +194,7 @@ class Player extends EventEmitter {
       url: query,
       duration: null,
       thumbnail: null,
-      requestor: message.author.toString(),
+      requestor: message.author.toString()
     }
 
     if(ytdl.validateURL(query)) {
