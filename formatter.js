@@ -8,7 +8,7 @@ function codify(str) {
 
 function getTrack(track, title, timestamp, reveal = false) {
   // Timestamp is in seconds
-  var value;
+  let value;
   if(track.amq && reveal) {
     const rS = track.amq.releaseSeason;
     const rY = track.amq.releaseYear;
@@ -58,13 +58,13 @@ function getPrintableQueue(queue, currentTrack) {
   if(queue == null) return codify("Queue empty   ;(");
   if(queue.length == 0) return codify("Queue empty   ;(");
 
-  var counter = 0;
-  var message = "glsl\n";
+  let counter = 0;
+  let message = "glsl\n";
   const charLimit = 34;
 
   queue.forEach(track => {
     const t = track.title, tL = track.title.length;
-    var title = tL > charLimit ? t.substring(0, charLimit - 3) + "..." : t;
+    let title = tL > charLimit ? t.substring(0, charLimit - 3) + "..." : t;
     title = title.padEnd(charLimit, " ");
     message += `${counter + 1}) ${title} ${formatTime(track.duration)}\n`;
     if(counter == currentTrack) {
@@ -96,7 +96,7 @@ function getNowPlaying(track, timestamp) {
 }
 
 function getHelp(message, client, arg) {
-  var embed = new MessageEmbed();
+  let embed = new MessageEmbed();
 
   const commands = require("./help");
   const commandNames = Object.keys(commands);
@@ -120,7 +120,7 @@ function getHelp(message, client, arg) {
     return embed;
   }
 
-  var command = commandNames.includes(find) ? find : commandNames.find(name => {
+  let command = commandNames.includes(find) ? find : commandNames.find(name => {
     return commands[name].aliases && commands[name].aliases.includes(find)
   })
 

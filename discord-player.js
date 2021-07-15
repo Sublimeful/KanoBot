@@ -104,8 +104,8 @@ class Player extends EventEmitter {
 
     const usernames = server.amq.mal.usernames;
 
-    var username = null;
-    var rand = Math.random();
+    let username = null;
+    let rand = Math.random();
 
     if(rand < server.amq.mal.chance) {
       username = 
@@ -115,7 +115,7 @@ class Player extends EventEmitter {
     this.emit("notification", message, "amqChoosingFrom", username);
 
     try {
-      var anime;
+      let anime;
 
       if(username == null) {
         const res = await fetch("https://themes.moe/api/roulette");

@@ -7,7 +7,7 @@ const Player = require("./discord-player");
 const client = new Client();
 const player = new Player();
 
-var processor;
+let processor;
 
 
 
@@ -380,7 +380,7 @@ client.on("message", async message => {
                   break;
                 }
 
-                var val = "";
+                let val = "";
 
                 usernames.forEach(username => {
                   val += `${username}, `;
