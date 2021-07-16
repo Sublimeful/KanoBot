@@ -4,13 +4,10 @@ const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
 const ytdl = require("ytdl-core");
 const yts = require("yt-search");
+const spotify = require("spotify-url-info");
+const scdl = require('soundcloud-downloader').default;
 
 const { getAnimeInfo, getQueryType } = require("./utils");
-
-const spotify = require("spotify-url-info");
-const sc = require("soundcloud-scraper");
-
-const SoundCloud = new sc.Client();
 
 ffmpeg.setFfprobePath(ffprobe.path);
 
@@ -146,33 +143,74 @@ class Player extends EventEmitter {
       requestor: message.author.toString(),
       source: null,
       backupLink: null,
-      engine: null
     }
 
     const queryType = getQueryType(query);
-    console.log(queryType)
-    console.log(query)
 
     switch(queryType) {
+      case 'soundcloud_playlist': {
+        try {
+          const playlist = await scdl.getSetInfo(query);
+
+          const tracks = [];
+
+          for (const song of playlist.tracks) {
+            const t = {
+              url: song.permalink_url,
+              title: song.title,
+              duration: Math.floor(song.duration/1000),
+              thumbnail: song.artwork_url ?? song.user.avatar_url ?? 'https://soundcloud.com/pwa-icon-192.png',
+              requestor: message.author.toString(),
+              source: 'soundcloud',
+            }
+
+            tracks.push(t);
+          }
+
+          return tracks;
+        } catch(err) {return null;}
+      }
+      case 'spotify_album':
+      case 'spotify_playlist': {
+        try {
+          const playlist = await spotify.getData(query);
+
+          const tracks = await Promise.all(playlist.tracks.items.map(async (spotifyData) => {
+            const t = {
+              url: spotifyData.external_urls?.spotify ?? query,
+              title: spotifyData.name,
+              duration: Math.floor(spotifyData.duration_ms/1000),
+              thumbnail: spotifyData.album?.images[0]?.url ?? spotifyData.preview_url?.length ? `https://i.scdn.co/image/${spotifyData.preview_url?.split('?cid=')[1]}` : 'https://www.scdn.co/i/_global/twitter_card-default.jpg',
+              requestor: message.author.toString(),
+              source: 'spotify',
+              backupLink: null
+            }
+
+            // Search for the song on Youtube, set first result as backup link
+            const search = await yts(`${t.title}${' - ' + spotifyData.artists[0]?.name ?? 'Unknown Artist'}`);
+
+            if(search.videos.length !== 0) {
+              const video = search.videos[0];
+
+              t.backupLink = video.url;
+            }
+
+            return t;
+          }))
+
+          return tracks;
+        } catch(err) {return null;}
+      }
       case 'soundcloud_track': {
         try {
-          const songDetails = await SoundCloud.getSongInfo(query);
+          const songDetails = await scdl.getInfo(query);
 
-
-          track.url = songDetails.url;
-          console.log(1);
+          track.url = songDetails.permalink_url;
           track.title = songDetails.title;
-          console.log(2);
           track.duration = Math.floor(songDetails.duration/1000);
-          console.log(3);
-          track.thumbnail = songDetails.thumbnail;
-          console.log(4);
+          track.thumbnail = songDetails.artwork_url ?? songDetails.user.avatar_url ?? 'https://soundcloud.com/pwa-icon-192.png';
           track.source = 'soundcloud';
-          console.log(5);
-          track.engine = songDetails;
-          console.log(6);
 
-          console.log(track);
           return track;
         } catch(err) {return null;}
       }
@@ -187,7 +225,7 @@ class Player extends EventEmitter {
           track.source = 'spotify';
 
           // Search for the song on Youtube, set first result as backup link
-          const search = await yts(`${queue.playing.title}${' - ' + queue.playing.author}`);
+          const search = await yts(`${track.title}${' - ' + spotifyData.artists[0]?.name ?? 'Unknown Artist'}`);
 
           if(search.videos.length !== 0) {
             const video = search.videos[0];
@@ -576,7 +614,7 @@ class Player extends EventEmitter {
     if(track.source === "youtube" || track.source === "spotify") {
       stream = ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
     } else {
-      stream = track.source === "soundcloud" ? await track.engine.downloadProgressive() : track.url;
+      stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
 
     server.connection
@@ -641,7 +679,7 @@ class Player extends EventEmitter {
     if(track.source === "youtube" || track.source === "spotify") {
       stream = ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
     } else {
-      stream = track.source === "soundcloud" ? await track.engine.downloadProgressive() : track.url;
+      stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
 
     server.connection
@@ -731,10 +769,16 @@ class Player extends EventEmitter {
     // Error handling
     if(!query) return this.emit("error", message, "invalidQuery");
 
-    // Add the track, if successfully added and nothing is playing
-    if(await this.addTrack(message, query) && server.isPlaying === false) {
-      // ; then play that added track
-      await this.jump(message, server.currentTrack + 1);
+    // Add the track, if successfully added and nothing is playing then play that added track
+    const track = await this.addTrack(message, query);
+
+    if(track && server.isPlaying === false) {
+      if(Array.isArray(track)) {
+        // If track is a list of tracks (playlist)
+        await this.jump(message, server.currentTrack + 1);
+      } else {
+        await this.jump(message, server.queue.length - 1);
+      }
     }
   }
 }

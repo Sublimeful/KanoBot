@@ -1,17 +1,16 @@
-const fetch = require("node-fetch")
-
-const { validateURL: SoundcloudValidateURL } = require('soundcloud-scraper');
+const fetch = require("node-fetch");
+const scdl = require('soundcloud-downloader').default;
 
 
 
 const spotifySongRegex = /https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:track\/|\?uri=spotify:track:)((\w|-){22})/;
 const spotifyPlaylistRegex = /https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:playlist\/|\?uri=spotify:playlist:)((\w|-){22})/;
 const spotifyAlbumRegex = /https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:album\/|\?uri=spotify:album:)((\w|-){22})/;
+const youtubePlaylistRegex = /^.*(youtu.be\/|list=)([^#\&\?]*).*/;
+const youtubeVideoRegex = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/;
 const vimeoRegex = /(http|https)?:\/\/(www\.|player\.)?vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|video\/|)(\d+)(?:|\/\?)/;
 const facebookRegex = /(https?:\/\/)(www\.|m\.)?(facebook|fb).com\/.*\/videos\/.*/;
 const reverbnationRegex = /https:\/\/(www.)?reverbnation.com\/(.+)\/song\/(.+)/;
-const youtubePlaylistRegex = /^.*(youtu.be\/|list=)([^#\&\?]*).*/;
-const youtubeVideoRegex = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/;
 const attachmentRegex = /^(?:(?:https?|ftp):\/\/)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)(?:\.(?:[a-z\u00a1-\uffff0-9]-*)*[a-z\u00a1-\uffff0-9]+)*(?:\.(?:[a-z\u00a1-\uffff]{2,})))(?::\d{2,5})?(?:\/\S*)?$/;
 
 
@@ -31,8 +30,8 @@ function validateURL(str) {
 
 /* Getter for the query type */
 function getQueryType(query) {
-  if (SoundcloudValidateURL(query, 'track')) return 'soundcloud_track';
-  if (SoundcloudValidateURL(query, 'playlist') || query.includes('/sets/')) return 'soundcloud_playlist';
+  if (scdl.isPlaylistURL(query)) return 'soundcloud_playlist';
+  if (scdl.isValidUrl(query)) return 'soundcloud_track';
   if (spotifySongRegex.test(query)) return 'spotify_song';
   if (spotifyAlbumRegex.test(query)) return 'spotify_album';
   if (spotifyPlaylistRegex.test(query)) return 'spotify_playlist';
