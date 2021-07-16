@@ -492,8 +492,9 @@ class Player extends EventEmitter {
   async setMALChance(message, chance) {
     const server = this.getContract(message);
 
-    // Error handling
-    if(isNaN(chance)) return this.emit("error", message, "invalidArgs");
+    // Error handling (show the MAL chance if chance is not a number)
+    if(isNaN(chance)) 
+      return this.emit("notification", message, "malChance", server.amq.mal.chance);
 
     // Turn chance into range [0.0 - 1.0]
     chance = chance / 100;
@@ -503,7 +504,7 @@ class Player extends EventEmitter {
     if(chance > 1) chance = 1;
 
     server.amq.mal.chance = chance;
-    this.emit("notification", message, "malChanceSet", server.amq.mal.chance);
+    this.emit("notification", message, "setMALChance", server.amq.mal.chance);
   }
 
   /* Toggles amq mode */
@@ -595,15 +596,15 @@ class Player extends EventEmitter {
     switch(option) {
       case "track":
         server.loop = "track";
-        this.emit("notification", message, "loop", "track");
+        this.emit("notification", message, "setLoop", "track");
         break;
       case "queue":
         server.loop = "queue";
-        this.emit("notification", message, "loop", "queue");
+        this.emit("notification", message, "setLoop", "queue");
         break;
       case "off":
         server.loop = "off";
-        this.emit("notification", message, "loop", "off");
+        this.emit("notification", message, "setLoop", "off");
         break;
       default:
         this.emit("notification", message, "loop", server.loop);
@@ -732,8 +733,9 @@ class Player extends EventEmitter {
   async setVolume(message, volume) {
     const server = this.getContract(message);
 
-    // Error handling
-    if(isNaN(volume)) return this.emit("error", message, "invalidArgs");
+    // Error handling (show volume if args is not a number)
+    if(isNaN(volume))
+      return this.emit("notification", message, "volume", server.volume);
 
     // Limits and thresholds
     if(volume < 0) volume = 0;

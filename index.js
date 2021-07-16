@@ -55,7 +55,7 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "search": {
-      const m1 = getSimpleEmbed(`**----- Searching for -----**${codify(data)}`);
+      const m1 = getSimpleEmbed(`**----- Searching For -----**${codify(data)}`);
       message.channel.send(m1);
       break;
     }
@@ -71,13 +71,25 @@ player.on("notification", (message, type, data) => {
     }
     case "seekTo": {
       const ts = formatTime(Math.floor(data/1000));
-      const m1 = getSimpleEmbed(`**----- Seeked to -----**${codify(ts)}`);
+      const m1 = getSimpleEmbed(`**----- Seeked To -----**${codify(ts)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "volume": {
+      const vol = `${Math.floor(data * 100)}%`;
+      const m1 = getSimpleEmbed(`**----- Volume -----**${codify(vol)}`);
       message.channel.send(m1);
       break;
     }
     case "setVolume": {
       const vol = `${Math.floor(data * 100)}%`;
-      const m1 = getSimpleEmbed(`**----- New volume -----**${codify(vol)}`);
+      const m1 = getSimpleEmbed(`**----- New Volume -----**${codify(vol)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "setLoop": {
+      const loop = data[0].toUpperCase() + data.substr(1);
+      const m1 = getSimpleEmbed(`**----- New Loop -----**${codify(loop)}`);
       message.channel.send(m1);
       break;
     }
@@ -113,9 +125,15 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
-    case "malChanceSet": {
+    case "malChance": {
       const chance = `${(data * 100).toFixed(1)}%`;
       const m1 = getSimpleEmbed(`**----- MyAnimeList Chance -----**${codify(chance)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "setMALChance": {
+      const chance = `${(data * 100).toFixed(1)}%`;
+      const m1 = getSimpleEmbed(`**----- New MyAnimeList Chance -----**${codify(chance)}`);
       message.channel.send(m1);
       break;
     }
