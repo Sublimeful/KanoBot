@@ -82,7 +82,8 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "loop": {
-      const m1 = getSimpleEmbed(`**----- Loop -----**${codify(data)}`);
+      const loop = data[0].toUpperCase() + data.substr(1);
+      const m1 = getSimpleEmbed(`**----- Loop -----**${codify(loop)}`);
       message.channel.send(m1);
       break;
     }
