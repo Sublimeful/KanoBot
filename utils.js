@@ -47,7 +47,7 @@ function getQueryType(query) {
 
 /* Getter for anime info */
 async function getAnimeInfo(malUsername) {
-  if(malUsername == null) {
+  if(malUsername === null) {
     const res = await fetch("https://themes.moe/api/roulette");
 
     // If something failed with the api, then return null
@@ -69,10 +69,10 @@ async function getAnimeInfo(malUsername) {
     const watchStatus = parseInt(entry.watching_status);
 
     // Keep the entry if the watchStatus is completed or watching
-    return (watchStatus == 1 || watchStatus == 2);
+    return (watchStatus === 1 || watchStatus === 2);
   })
 
-  if(filter.length == 0) return null;
+  if(filter.length === 0) return null;
 
   const entry = filter[Math.floor(filter.length * Math.random())];
 

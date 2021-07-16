@@ -29,7 +29,7 @@ function getTrack(track, title, timestamp, reveal = false) {
     "color": Math.floor(Math.random() * 16777215),
     "footer": {
       "icon_url": "https://images-na.ssl-images-amazon.com/images/I/71a04y-NNgL.png",
-      "text": `${timestamp != null ? formatTime(timestamp) : "--:--"}/${isNaN(track.duration) ? "∞" : formatTime(track.duration)}`
+      "text": `${timestamp !== null ? formatTime(timestamp) : "--:--"}/${isNaN(track.duration) ? "∞" : formatTime(track.duration)}`
     },
     "fields": [
       {
@@ -38,7 +38,7 @@ function getTrack(track, title, timestamp, reveal = false) {
       }
     ],
     "thumbnail": {
-      "url": track.thumbnail && track.amq == null ? track.thumbnail : "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
+      "url": track.thumbnail && track.amq === null ? track.thumbnail : "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
     }
   }};
 }
@@ -55,8 +55,8 @@ function formatTime(time) {
 }
 
 function getPrintableQueue(queue, currentTrack) {
-  if(queue == null) return codify("Queue empty   ;(");
-  if(queue.length == 0) return codify("Queue empty   ;(");
+  if(queue === null) return codify("Queue empty   ;(");
+  if(queue.length === 0) return codify("Queue empty   ;(");
 
   let currentPage = 0;
 
@@ -83,7 +83,7 @@ function getPrintableQueue(queue, currentTrack) {
 
       let r = `${position + 1}) ${title} ${formatTime(track.duration)}`;
 
-      if(position == currentTrack)
+      if(position === currentTrack)
         r += "\n    ⬑ current track";
 
       return r;
@@ -102,26 +102,31 @@ function getPrintableQueue(queue, currentTrack) {
   queueEmbed.react("➡️");
 
   const collector = queueEmbed.createReactionCollector((reaction, user) =>
-    ['⬅️', '➡️'].includes(reaction) && message.author.id == user.id
+    ['⬅️', '➡️'].includes(reaction) && (message.author.id === user.id)
   )
+
+  collector.on('collect', (reaction, user) => {
+
+    
+  })
 
 }
 
 function getReveal(track, timestamp) {
-  if(track == null) return getSimpleEmbed("⚠️ There is no song at this position...");
-  if(track.amq == null) return getSimpleEmbed("⚠️ This is not an AMQ song...");
+  if(track === null) return getSimpleEmbed("⚠️ There is no song at this position...");
+  if(track.amq === null) return getSimpleEmbed("⚠️ This is not an AMQ song...");
 
   return getTrack(track, `"${track.amq.songName}"`, timestamp, reveal = true);
 }
 
 function getSong(track, timestamp) {
-  if(track == null) return getSimpleEmbed("⚠️ There is no song at this position...");
+  if(track === null) return getSimpleEmbed("⚠️ There is no song at this position...");
   
   return getTrack(track, "---------- Song ----------", timestamp);
 }
 
 function getNowPlaying(track, timestamp) {
-  if(track == null) return getSimpleEmbed("⚠️ Nothing is playing right now...");
+  if(track === null) return getSimpleEmbed("⚠️ Nothing is playing right now...");
 
   return getTrack(track, "Now Playing...", timestamp);
 }
@@ -142,7 +147,7 @@ function getHelp(message, client, arg) {
     .setFooter(`Requested by: ${requestor}`, message.author.displayAvatarURL())
     .setThumbnail(client.user.displayAvatarURL())
 
-  if (find == "") {
+  if (find === "") {
     embed
       .setDescription(commandNames.map(c => {
         return `\`${c.padEnd(longestCommand.length)}\` :: ${commands[c].description}`;
@@ -155,7 +160,7 @@ function getHelp(message, client, arg) {
     return commands[name].aliases && commands[name].aliases.includes(find)
   })
 
-  if (command != undefined) {
+  if (command !== undefined) {
     embed
       .setTitle(`COMMAND - ${command}`)
 

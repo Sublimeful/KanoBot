@@ -101,7 +101,7 @@ class Player extends EventEmitter {
     let username = null;
     let rand = Math.random();
 
-    if(rand < server.amq.mal.chance && usernames.length != 0) {
+    if(rand < server.amq.mal.chance && usernames.length !== 0) {
       username = usernames[Math.floor(usernames.length * Math.random())];
     }
 
@@ -298,7 +298,7 @@ class Player extends EventEmitter {
 
     server.queue.splice(to, 0, ...server.queue.splice(from, 1));
 
-    if(server.currentTrack == from) {
+    if(server.currentTrack === from) {
       server.currentTrack = to;
     } else if(from > server.currentTrack && to <= server.currentTrack) {
       server.currentTrack++;
@@ -327,7 +327,7 @@ class Player extends EventEmitter {
     // ; If already in the VC, then don't join again and return true
     const server = this.getContract(message);
 
-    if(server.connection && voiceChannel == server.connection.channel) return true;
+    if(server.connection && voiceChannel === server.connection.channel) return true;
 
     try {
       const connection = await voiceChannel.join();
@@ -354,7 +354,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
     
     // Error handling
-    if(username == null) return this.emit("error", message, "invalidArgs");
+    if(username === null) return this.emit("error", message, "invalidArgs");
 
     // Testing to see if the username is valid
     const res = await fetch(`https://api.jikan.moe/v3/user/${username}`);
@@ -372,7 +372,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     //Error handling
-    if(username == null) return this.emit("error", message, "invalidArgs");
+    if(username === null) return this.emit("error", message, "invalidArgs");
     if(!server.amq.mal.usernames.includes(username))
       return this.emit("error", message, "malNotInList", username);
       
@@ -388,7 +388,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     // Error handling
-    if(server.amq.mal.usernames.length == 0) return this.emit("error", message, "malListEmpty")
+    if(server.amq.mal.usernames.length === 0) return this.emit("error", message, "malListEmpty")
 
     server.amq.mal.usernames = [];
 
@@ -429,7 +429,7 @@ class Player extends EventEmitter {
     const track = await this.#generateAMQ(message);
 
     // Error handling
-    if(track == null) {
+    if(track === null) {
       this.emit("error", message, "errorAddingAMQ");
       return null;
     }
@@ -523,7 +523,7 @@ class Player extends EventEmitter {
 
     let stream;
 
-    if(track.source == "youtube" || track.source == "spotify") {
+    if(track.source === "youtube" || track.source === "spotify") {
       stream = ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0});
     } else {
       stream = track.url;
@@ -532,9 +532,9 @@ class Player extends EventEmitter {
     server.connection
       .play(stream, { bitrate: 'auto' })
       .on("finish", () => {
-        if(server.loop == "track")
+        if(server.loop === "track")
           return this.jump(message, server.currentTrack);
-        if(server.currentTrack == server.queue.length - 1 && server.loop == "queue")
+        if(server.currentTrack === server.queue.length - 1 && server.loop === "queue")
           return this.jump(message, 0);
         this.skip(message);
       })
@@ -588,7 +588,7 @@ class Player extends EventEmitter {
 
     let stream;
 
-    if(track.source == "youtube" || track.source == "spotify") {
+    if(track.source === "youtube" || track.source === "spotify") {
       stream = ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0});
     } else {
       stream = track.url;
@@ -597,9 +597,9 @@ class Player extends EventEmitter {
     server.connection
       .play(stream, { bitrate: 'auto', seek: ms/1000 })
       .on("finish", () => {
-        if(server.loop == "track")
+        if(server.loop === "track")
           return this.jump(message, server.currentTrack);
-        if(server.currentTrack == server.queue.length - 1 && server.loop == "queue")
+        if(server.currentTrack === server.queue.length - 1 && server.loop === "queue")
           return this.jump(message, 0);
         this.skip(message);
       })
@@ -657,7 +657,7 @@ class Player extends EventEmitter {
     const track = await this.#generateTrack(message, query);
 
     // Error handling
-    if(track == null) {
+    if(track === null) {
       this.emit("error", message, "noResults", query);
       return null;
     }
@@ -678,11 +678,11 @@ class Player extends EventEmitter {
   async execute(message, query) {
     const server = this.getContract(message);
 
-    // Error handling, (query == false), what is that?
-    if(query == false) return this.emit("error", message, "invalidQuery");
+    // Error handling, (query === false), what is that?
+    if(query === false) return this.emit("error", message, "invalidQuery");
 
     // Add the track, if successfully added and nothing is playing
-    if(await this.addTrack(message, query) && server.isPlaying == false) {
+    if(await this.addTrack(message, query) && server.isPlaying === false) {
       // ; then play that added track
       await this.jump(message, server.currentTrack + 1);
     }

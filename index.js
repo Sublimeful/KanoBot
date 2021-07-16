@@ -240,19 +240,19 @@ client.on("message", async message => {
         break;
       }
       case "song": {
-        const c = (args[0] == null || args[0] == "current" || args[0] == "c");
-        if(c && serverIsPlaying == false) {
+        const c = (args[0] === null || args[0] === "current" || args[0] === "c");
+        if(c && serverIsPlaying === false) {
           const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
           message.channel.send(m1);
           break;
         }
         const a1 =
-              args[0] == null                        ? serverCurrentTrack           :
-              args[0] == "current" || args[0] == "c" ? serverCurrentTrack           :
-              args[0] == "first"   || args[0] == "f" ? 0                            :
-              args[0] == "last"    || args[0] == "l" ? serverQueue.length - 1       :
+              args[0] === null                        ? serverCurrentTrack           :
+              args[0] === "current" || args[0] === "c" ? serverCurrentTrack           :
+              args[0] === "first"   || args[0] === "f" ? 0                            :
+              args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1       :
                                                        parseInt(args[0]) - 1;
-        const tsc = (a1 == serverCurrentTrack && serverIsPlaying);
+        const tsc = (a1 === serverCurrentTrack && serverIsPlaying);
         const ts = tsc ? Math.floor(player.getTimeStamp(message)/1000) : null;
         const m1 = getSong(serverQueue[a1], ts);
         message.channel.send(m1);
@@ -277,23 +277,23 @@ client.on("message", async message => {
       }
       case "jump": {
         const a1 =
-              args[0] == "first" || args[0] == "f" ? 0                            :
-              args[0] == "last"  || args[0] == "l" ? serverQueue.length - 1       :
+              args[0] === "first" || args[0] === "f" ? 0                            :
+              args[0] === "last"  || args[0] === "l" ? serverQueue.length - 1       :
                                                      parseInt(args[0]) - 1;
         await player.jump(message, a1);
         break;
       }
       case "remove": {
         const a1 =
-              args[0] == "current" || args[0] == "c" ? serverCurrentTrack           :
-              args[0] == "first"   || args[0] == "f" ? 0                            :
-              args[0] == "last"    || args[0] == "l" ? serverQueue.length - 1       :
+              args[0] === "current" || args[0] === "c" ? serverCurrentTrack           :
+              args[0] === "first"   || args[0] === "f" ? 0                            :
+              args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1       :
                                                        parseInt(args[0]) - 1;
         const a2 =
-              args[1] == null                        ? a1                           :
-              args[1] == "current" || args[1] == "c" ? serverCurrentTrack           :
-              args[1] == "first"   || args[1] == "f" ? 0                            :
-              args[1] == "last"    || args[1] == "l" ? serverQueue.length - 1       :
+              args[1] === null                        ? a1                           :
+              args[1] === "current" || args[1] === "c" ? serverCurrentTrack           :
+              args[1] === "first"   || args[1] === "f" ? 0                            :
+              args[1] === "last"    || args[1] === "l" ? serverQueue.length - 1       :
                                                        parseInt(args[1]) - 1;
         await player.remove(message, a1, args.length < 2 ? a1 : a2);
         break;
@@ -304,14 +304,14 @@ client.on("message", async message => {
       }
       case "move": {
         const a1 =
-              args[0] == "current" || args[0] == "c" ? serverCurrentTrack           :
-              args[0] == "first"   || args[0] == "f" ? 0                            :
-              args[0] == "last"    || args[0] == "l" ? serverQueue.length - 1       :
+              args[0] === "current" || args[0] === "c" ? serverCurrentTrack           :
+              args[0] === "first"   || args[0] === "f" ? 0                            :
+              args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1       :
                                                        parseInt(args[0]) - 1;
         const a2 =
-              args[1] == "current" || args[1] == "c" ? serverCurrentTrack           :
-              args[1] == "first"   || args[1] == "f" ? 0                            :
-              args[1] == "last"    || args[1] == "l" ? serverQueue.length - 1       :
+              args[1] === "current" || args[1] === "c" ? serverCurrentTrack           :
+              args[1] === "first"   || args[1] === "f" ? 0                            :
+              args[1] === "last"    || args[1] === "l" ? serverQueue.length - 1       :
                                                        parseInt(args[1]) - 1;
         await player.move(message, a1, a2);
         break;
@@ -348,19 +348,19 @@ client.on("message", async message => {
             break;
           }
           case "reveal": {
-            const c = (args[1] == null || args[1] == "current" || args[1] == "c");
-            if(c && serverIsPlaying == false) {
+            const c = (args[1] === null || args[1] === "current" || args[1] === "c");
+            if(c && serverIsPlaying === false) {
               const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
               message.channel.send(m1);
               break;
             }
             const arg = 
-              args[1] == null                        ? serverCurrentTrack     :
-              args[1] == "current" || args[1] == "c" ? serverCurrentTrack     :
-              args[1] == "first"   || args[1] == "f" ? 0                      :
-              args[1] == "last"    || args[1] == "l" ? serverQueue.length - 1 :
+              args[1] === null                        ? serverCurrentTrack     :
+              args[1] === "current" || args[1] === "c" ? serverCurrentTrack     :
+              args[1] === "first"   || args[1] === "f" ? 0                      :
+              args[1] === "last"    || args[1] === "l" ? serverQueue.length - 1 :
                                                        parseInt(args[1]) - 1;
-            const tsc = (arg == serverCurrentTrack && serverIsPlaying);
+            const tsc = (arg === serverCurrentTrack && serverIsPlaying);
             const ts = tsc ? Math.floor(player.getTimeStamp(message)/1000) : null;
             const m1 = getReveal(serverQueue[arg], ts);
             message.channel.send(m1);
@@ -375,7 +375,7 @@ client.on("message", async message => {
               case "list": {
                 const usernames = player.getMALUsernames(message);
 
-                if(usernames.length == 0) {
+                if(usernames.length === 0) {
                   const m1 = getSimpleEmbed("⚠️ There are no usernames in the MAL list");
                   message.channel.send(m1);
                   break;
@@ -444,13 +444,13 @@ client.on("message", async message => {
 //<-- event: onvoiceStateUpdate
 client.on('voiceStateUpdate', (oldState, newState) => {
   // if nobody disconnected, then return
-  if (oldState.channelID != oldState.guild.me.voice.channelID || newState.channel) return;
+  if (oldState.channelID !== oldState.guild.me.voice.channelID || newState.channel) return;
 
   // if there is only one person left (bot), then wait two seconds
-  if (oldState.channel.members.size == 1)
+  if (oldState.channel.members.size === 1)
     setTimeout(() => {
       // if there is still only one person left, then leave
-      if (oldState.channel.members.size == 1)
+      if (oldState.channel.members.size === 1)
         oldState.channel.leave();
     }, 2000);
 });
