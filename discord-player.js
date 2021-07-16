@@ -601,9 +601,13 @@ class Player extends EventEmitter {
         server.loop = "queue";
         this.emit("notification", message, "loop", "queue");
         break;
-      default:
+      case "off":
         server.loop = "off";
         this.emit("notification", message, "loop", "off");
+        break;
+      default:
+        this.emit("notification", message, "loop", server.loop);
+        break;
     }
   }
 
