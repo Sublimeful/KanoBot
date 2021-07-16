@@ -180,7 +180,7 @@ class Player extends EventEmitter {
               url: spotifyData.external_urls?.spotify ?? query,
               title: spotifyData.name,
               duration: Math.floor(spotifyData.duration_ms/1000),
-              thumbnail: spotifyData.album?.images[0]?.url ?? spotifyData.preview_url?.length ? `https://i.scdn.co/image/${spotifyData.preview_url?.split('?cid=')[1]}` : 'https://www.scdn.co/i/_global/twitter_card-default.jpg',
+              thumbnail: null,
               requestor: message.author.toString(),
               source: 'spotify',
               backupLink: null
@@ -194,8 +194,8 @@ class Player extends EventEmitter {
 
               t.backupLink = video.url;
 
-              // If spotify didnt give us a thumbnail, then get our own from yts!
-              if(!t.thumbnail) t.thumbnail = video.thumbnail;
+              // Get our thumbnail from yts, because spotify will not give us one
+              t.thumbnail = video.thumbnail;
             }
 
             return t;
@@ -224,7 +224,6 @@ class Player extends EventEmitter {
           track.url = spotifyData.external_urls?.spotify ?? query;
           track.title = spotifyData.name;
           track.duration = Math.floor(spotifyData.duration_ms/1000);
-          track.thumbnail = spotifyData.album?.images[0]?.url ?? spotifyData.preview_url?.length ? `https://i.scdn.co/image/${spotifyData.preview_url?.split('?cid=')[1]}` : 'https://www.scdn.co/i/_global/twitter_card-default.jpg';
           track.source = 'spotify';
 
           // Search for the song on Youtube, set first result as backup link
@@ -235,8 +234,8 @@ class Player extends EventEmitter {
 
             track.backupLink = video.url;
 
-            // If spotify didnt give us a thumbnail, then get our own from yts!
-            if(!track.thumbnail) track.thumbnail = video.thumbnail;
+            // Get our thumbnail from yts, because spotify will not give us one
+            track.thumbnail = video.thumbnail;
           }
 
           return track;
