@@ -193,6 +193,9 @@ class Player extends EventEmitter {
               const video = search.videos[0];
 
               t.backupLink = video.url;
+
+              // If spotify didnt give us a thumbnail, then get our own from yts!
+              if(!t.thumbnail) t.thumbnail = video.thumbnail;
             }
 
             return t;
@@ -231,6 +234,9 @@ class Player extends EventEmitter {
             const video = search.videos[0];
 
             track.backupLink = video.url;
+
+            // If spotify didnt give us a thumbnail, then get our own from yts!
+            if(!track.thumbnail) track.thumbnail = video.thumbnail;
           }
 
           return track;
