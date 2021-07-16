@@ -58,22 +58,53 @@ function getPrintableQueue(queue, currentTrack) {
   if(queue == null) return codify("Queue empty   ;(");
   if(queue.length == 0) return codify("Queue empty   ;(");
 
-  let counter = 0;
-  let message = "glsl\n";
+  let currentPage = 0;
+
+  const sliceAmount = 10;
   const charLimit = 34;
+  const embedSlices = [];
 
-  queue.forEach(track => {
-    const t = track.title, tL = track.title.length;
-    let title = tL > charLimit ? t.substring(0, charLimit - 3) + "..." : t;
-    title = title.padEnd(charLimit, " ");
-    message += `${counter + 1}) ${title} ${formatTime(track.duration)}\n`;
-    if(counter == currentTrack) {
-      message += `    ⬑ current track\n`;
-    }
-    counter++;
-  })
+  for(let i = 0; i < queue.length; i += sliceAmount) {
+    const slice = queue.slice(i, sliceAmount);
+    const embed = new MessageEmbed();
+    let message = "glsl\n";
+    let counter = 0;
 
-  return codify(message);
+    message += slice.map(track => {
+      const t = track.title;
+      const tL = track.title.length;
+
+      let title = 
+        tL > charLimit ? `${t.substr(0, charLimit - 3)}...` : t;
+
+      title = title.padEnd(charLimit, " ");
+
+      const position = i + (counter++);
+
+      let r = `${position + 1}) ${title} ${formatTime(track.duration)}`;
+
+      if(position == currentTrack)
+        r += "\n    ⬑ current track";
+
+      return r;
+    })
+    .join('\n');
+
+    embed.setDescription(codify(message));
+
+    embedSlices.push(embed);
+  }
+
+  const m1 = `Current Page: ${currentPage + 1}/${embedSlices.length}`
+
+  const queueEmbed = await message.channel.send(m1, embedSlices[currentPage]);
+  queueEmbed.react("⬅️");
+  queueEmbed.react("➡️");
+
+  const collector = queueEmbed.createReactionCollector((reaction, user) =>
+    ['⬅️', '➡️'].includes(reaction) && message.author.id == user.id
+  )
+
 }
 
 function getReveal(track, timestamp) {

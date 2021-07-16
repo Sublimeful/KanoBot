@@ -1,7 +1,6 @@
 const fetch = require("node-fetch")
 
 const { validateURL: SoundcloudValidateURL } = require('soundcloud-scraper');
-const YouTube = require('youtube-sr').default;
 
 
 
@@ -11,6 +10,8 @@ const spotifyAlbumRegex = /https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:alb
 const vimeoRegex = /(http|https)?:\/\/(www\.|player\.)?vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^/]*)\/videos\/|video\/|)(\d+)(?:|\/\?)/;
 const facebookRegex = /(https?:\/\/)(www\.|m\.)?(facebook|fb).com\/.*\/videos\/.*/;
 const reverbnationRegex = /https:\/\/(www.)?reverbnation.com\/(.+)\/song\/(.+)/;
+const youtubePlaylistRegex = /^.*(youtu.be\/|list=)([^#\&\?]*).*/;
+const youtubeVideoRegex = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/;
 
 
 
@@ -34,8 +35,8 @@ function getQueryType(query) {
   if (spotifySongRegex.test(query)) return 'spotify_song';
   if (spotifyAlbumRegex.test(query)) return 'spotify_album';
   if (spotifyPlaylistRegex.test(query)) return 'spotify_playlist';
-  if (YouTube.validate(query, 'PLAYLIST')) return 'youtube_playlist';
-  if (YouTube.validate(query, 'VIDEO')) return 'youtube_video';
+  if (youtubePlaylistRegex.test(query)) return 'youtube_playlist';
+  if (youtubeVideoRegex.test(query)) return 'youtube_video';
   if (vimeoRegex.test(query)) return 'vimeo';
   if (facebookRegex.test(query)) return 'facebook';
   if (reverbnationRegex.test(query)) return 'reverbnation';

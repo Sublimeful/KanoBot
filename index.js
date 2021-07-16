@@ -20,6 +20,13 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "trackAdded": {
+      if(Array.isArray(data)) {
+        // If data is a list of tracks (playlist)
+        const m1 = getSimpleEmbed(` 🎉 Added **${data.length}** tracks`);
+        message.channel.send(m1);
+        break;
+      }
+
       const value = data.amq ? `Track added: **${data.title}**` : 
                                `Track added: [${data.title}](${data.url})`
       const m1 = getSimpleEmbed(`${value} [${data.requestor}]`);

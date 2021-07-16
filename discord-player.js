@@ -9,7 +9,6 @@ const { getAnimeInfo, getQueryType } = require("./utils");
 
 const spotify = require("spotify-url-info");
 const sc = require("soundcloud-scraper");
-const YouTube = require('youtube-sr');
 
 const SoundCloud = new sc.Client();
 
@@ -120,9 +119,9 @@ class Player extends EventEmitter {
     const malID = anime.malID;
 
     const track = 
-      await this.#generateTrack(message, `${songName} - ${animeTitle} ${songType}`, true);
+      await this.#generateTrack(message, `${songName} - ${animeTitle} ${songType}`);
 
-    if(track == null) return null;
+    if(track === null) return null;
 
     track.title = `[Anime Music Quiz] ${songType}`;
     track.amq = {
@@ -138,7 +137,7 @@ class Player extends EventEmitter {
   }
 
   /* Generate a track Object from a query */
-  async #generateTrack(message, query, suppress = false) {
+  async #generateTrack(message, query) {
     const track = {
       title: "Unknown Title",
       url: query,
@@ -150,25 +149,46 @@ class Player extends EventEmitter {
 
     const queryType = getQueryType(query);
 
-    console.log(queryType);
-
     switch(queryType) {
+      case 'youtube_playlist': {
+        try {
+          const id = query.match(/(PL|UU|LL|RD|OL)[a-zA-Z0-9-_]{16,41}/)[0];
+          const playlist = await yts({ listId: id });
+
+          if (playlist === null) return null;
+
+          const tracks = playlist.videos.map(video => {
+            return {
+              title: video.title,
+              url: `https://www.youtube.com/watch?v=${video.videoId}`,
+              duration: video.duration.seconds,
+              thumbnail: video.thumbnail,
+              requestor: message.author.toString(),
+              source: 'youtube'
+            }
+          })
+
+          return tracks;
+        } catch(err) {}
+      }
       case 'youtube_video': {
-        const videoInfo = await ytdl.getBasicInfo(query);
-        const videoDetails = videoInfo.videoDetails;
+        try {
+          const videoInfo = await ytdl.getBasicInfo(query);
+          const videoDetails = videoInfo?.videoDetails;
 
-        track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
-        track.title = videoDetails.title;
-        track.duration = parseInt(videoDetails.lengthSeconds);
-        track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
-        track.source = 'youtube'
+          track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
+          track.title = videoDetails.title;
+          track.duration = parseInt(videoDetails.lengthSeconds);
+          track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
+          track.source = 'youtube'
 
-        return track;
+          return track;
+        } catch(err) {}
       }
       case 'attachment': {
         return await new Promise((resolve, _) => {
           ffmpeg.ffprobe(query, (_, metadata) => {
-            if(metadata == null) return resolve(null);
+            if(metadata === null) return resolve(null);
 
             // Sets the title to the first metadata tag if there is one
             if(metadata.format.tags)
@@ -185,7 +205,7 @@ class Player extends EventEmitter {
         // Search for the query on Youtube, play first result
         const search = await yts(query);
 
-        if(search.videos.length == 0) return null;
+        if(search.videos.length === 0) return null;
 
         const video = search.videos[0];
 
@@ -250,7 +270,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     // Error handling
-    if(server.queue.length == 0) return this.emit("error", message, "queueIsEmpty");
+    if(server.queue.length === 0) return this.emit("error", message, "queueIsEmpty");
 
     server.queue = [];
 
@@ -411,7 +431,7 @@ class Player extends EventEmitter {
     // Error handling
     if(track == null) {
       this.emit("error", message, "errorAddingAMQ");
-      return track;
+      return null;
     }
 
     server.queue.push(track);
@@ -438,7 +458,7 @@ class Player extends EventEmitter {
       // ; generate and add an AMQ track
       if (await this.addAMQ(message)) {
         // ; then play that added track
-        await this.jump(message, server.queue.length - 1);
+        await this.jump(message, server.currentTrack + 1);
       }
       return false;
     }
@@ -639,10 +659,15 @@ class Player extends EventEmitter {
     // Error handling
     if(track == null) {
       this.emit("error", message, "noResults", query);
-      return track;
+      return null;
     }
 
-    server.queue.push(track);
+    if(Array.isArray(track)) {
+      // If track is a list of tracks (playlist)
+      server.queue = server.queue.concat(track);
+    } else {
+      server.queue.push(track);
+    }
 
     this.emit("notification", message, "trackAdded", track);
 
@@ -659,7 +684,7 @@ class Player extends EventEmitter {
     // Add the track, if successfully added and nothing is playing
     if(await this.addTrack(message, query) && server.isPlaying == false) {
       // ; then play that added track
-      await this.jump(message, server.queue.length - 1);
+      await this.jump(message, server.currentTrack + 1);
     }
   }
 }
