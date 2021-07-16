@@ -1,6 +1,6 @@
 const { Client } = require('discord.js');
 const { prefix, token } = require("./config");
-const { formatTime, codify, getPrintableQueue, getNowPlaying, getSimpleEmbed, getMoveEmbed, getSong, getHelp, getReveal } = require("./formatter");
+const { formatTime, codify, printQueue, getNowPlaying, getSimpleEmbed, getMoveEmbed, getSong, getHelp, getReveal } = require("./formatter");
 
 const Player = require("./discord-player");
 
@@ -45,9 +45,8 @@ player.on("notification", (message, type, data) => {
     }
     case "remove": {
       const m1 = getSimpleEmbed(`${data.length} songs have been removed! These are the songs:`);
-      const m2 = getPrintableQueue(data);
       message.channel.send(m1);
-      message.channel.send(m2);
+      printQueue(message, data);
       break;
     }
     case "move": {
@@ -240,14 +239,14 @@ client.on("message", async message => {
         break;
       }
       case "song": {
-        const c = (args[0] === null || args[0] === "current" || args[0] === "c");
+        const c = (!args[0] || args[0] === "current" || args[0] === "c");
         if(c && serverIsPlaying === false) {
           const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
           message.channel.send(m1);
           break;
         }
         const a1 =
-              args[0] === null                        ? serverCurrentTrack           :
+             !args[0]                                  ? serverCurrentTrack           :
               args[0] === "current" || args[0] === "c" ? serverCurrentTrack           :
               args[0] === "first"   || args[0] === "f" ? 0                            :
               args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1       :
@@ -259,8 +258,7 @@ client.on("message", async message => {
         break;
       }
       case "queue": {
-        const m1 = getPrintableQueue(serverQueue, serverCurrentTrack);
-        message.channel.send(m1);
+        await printQueue(message, serverQueue, serverCurrentTrack);
         break;
       }
       case "skip": {
@@ -290,7 +288,7 @@ client.on("message", async message => {
               args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1       :
                                                        parseInt(args[0]) - 1;
         const a2 =
-              args[1] === null                        ? a1                           :
+             !args[1]                                  ? a1                           :
               args[1] === "current" || args[1] === "c" ? serverCurrentTrack           :
               args[1] === "first"   || args[1] === "f" ? 0                            :
               args[1] === "last"    || args[1] === "l" ? serverQueue.length - 1       :
@@ -348,14 +346,14 @@ client.on("message", async message => {
             break;
           }
           case "reveal": {
-            const c = (args[1] === null || args[1] === "current" || args[1] === "c");
+            const c = (!args[1] || args[1] === "current" || args[1] === "c");
             if(c && serverIsPlaying === false) {
               const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
               message.channel.send(m1);
               break;
             }
             const arg = 
-              args[1] === null                        ? serverCurrentTrack     :
+             !args[1]                                  ? serverCurrentTrack     :
               args[1] === "current" || args[1] === "c" ? serverCurrentTrack     :
               args[1] === "first"   || args[1] === "f" ? 0                      :
               args[1] === "last"    || args[1] === "l" ? serverQueue.length - 1 :

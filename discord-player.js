@@ -121,7 +121,7 @@ class Player extends EventEmitter {
     const track = 
       await this.#generateTrack(message, `${songName} - ${animeTitle} ${songType}`);
 
-    if(track === null) return null;
+    if(!track) return null;
 
     track.title = `[Anime Music Quiz] ${songType}`;
     track.amq = {
@@ -144,18 +144,66 @@ class Player extends EventEmitter {
       duration: null,
       thumbnail: null,
       requestor: message.author.toString(),
-      source: null
+      source: null,
+      backupLink: null,
+      engine: null
     }
 
     const queryType = getQueryType(query);
+    console.log(queryType)
+    console.log(query)
 
     switch(queryType) {
+      case 'soundcloud_track': {
+        try {
+          const songDetails = await SoundCloud.getSongInfo(query);
+
+
+          track.url = songDetails.url;
+          console.log(1);
+          track.title = songDetails.title;
+          console.log(2);
+          track.duration = Math.floor(songDetails.duration/1000);
+          console.log(3);
+          track.thumbnail = songDetails.thumbnail;
+          console.log(4);
+          track.source = 'soundcloud';
+          console.log(5);
+          track.engine = songDetails;
+          console.log(6);
+
+          console.log(track);
+          return track;
+        } catch(err) {return null;}
+      }
+      case 'spotify_song': {
+        try {
+          const spotifyData = await spotify.getData(query);
+
+          track.url = spotifyData.external_urls?.spotify ?? query;
+          track.title = spotifyData.name;
+          track.duration = Math.floor(spotifyData.duration_ms/1000);
+          track.thumbnail = spotifyData.album?.images[0]?.url ?? spotifyData.preview_url?.length ? `https://i.scdn.co/image/${spotifyData.preview_url?.split('?cid=')[1]}` : 'https://www.scdn.co/i/_global/twitter_card-default.jpg';
+          track.source = 'spotify';
+
+          // Search for the song on Youtube, set first result as backup link
+          const search = await yts(`${queue.playing.title}${' - ' + queue.playing.author}`);
+
+          if(search.videos.length !== 0) {
+            const video = search.videos[0];
+
+            track.backupLink = video.url;
+          }
+
+          return track;
+        } catch(err) {return null;}
+      }
       case 'youtube_playlist': {
         try {
           const id = query.match(/(PL|UU|LL|RD|OL)[a-zA-Z0-9-_]{16,41}/)[0];
           const playlist = await yts({ listId: id });
 
-          if (playlist === null) return null;
+          if (!playlist) return null;
 
           const tracks = playlist.videos.map(video => {
             return {
@@ -169,7 +217,7 @@ class Player extends EventEmitter {
           })
 
           return tracks;
-        } catch(err) {}
+        } catch(err) {return null;}
       }
       case 'youtube_video': {
         try {
@@ -183,12 +231,12 @@ class Player extends EventEmitter {
           track.source = 'youtube'
 
           return track;
-        } catch(err) {}
+        } catch(err) {return null;}
       }
-      case 'attachment': {
+      case 'media_link': {
         return await new Promise((resolve, _) => {
           ffmpeg.ffprobe(query, (_, metadata) => {
-            if(metadata === null) return resolve(null);
+            if(!metadata || !metadata.format) return resolve(null);
 
             // Sets the title to the first metadata tag if there is one
             if(metadata.format.tags)
@@ -202,6 +250,8 @@ class Player extends EventEmitter {
         })
       }
       default: {
+        if(!query) return null;
+
         // Search for the query on Youtube, play first result
         const search = await yts(query);
 
@@ -354,7 +404,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
     
     // Error handling
-    if(username === null) return this.emit("error", message, "invalidArgs");
+    if(!username) return this.emit("error", message, "invalidArgs");
 
     // Testing to see if the username is valid
     const res = await fetch(`https://api.jikan.moe/v3/user/${username}`);
@@ -372,7 +422,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     //Error handling
-    if(username === null) return this.emit("error", message, "invalidArgs");
+    if(!username) return this.emit("error", message, "invalidArgs");
     if(!server.amq.mal.usernames.includes(username))
       return this.emit("error", message, "malNotInList", username);
       
@@ -429,7 +479,7 @@ class Player extends EventEmitter {
     const track = await this.#generateAMQ(message);
 
     // Error handling
-    if(track === null) {
+    if(!track) {
       this.emit("error", message, "errorAddingAMQ");
       return null;
     }
@@ -524,9 +574,9 @@ class Player extends EventEmitter {
     let stream;
 
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0});
+      stream = ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
     } else {
-      stream = track.url;
+      stream = track.source === "soundcloud" ? await track.engine.downloadProgressive() : track.url;
     }
 
     server.connection
@@ -589,9 +639,9 @@ class Player extends EventEmitter {
     let stream;
 
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = ytdl(track.url, {filter: 'audioonly', dlChunkSize: 0});
+      stream = ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
     } else {
-      stream = track.url;
+      stream = track.source === "soundcloud" ? await track.engine.downloadProgressive() : track.url;
     }
 
     server.connection
@@ -657,7 +707,7 @@ class Player extends EventEmitter {
     const track = await this.#generateTrack(message, query);
 
     // Error handling
-    if(track === null) {
+    if(!track) {
       this.emit("error", message, "noResults", query);
       return null;
     }
@@ -678,8 +728,8 @@ class Player extends EventEmitter {
   async execute(message, query) {
     const server = this.getContract(message);
 
-    // Error handling, (query === false), what is that?
-    if(query === false) return this.emit("error", message, "invalidQuery");
+    // Error handling
+    if(!query) return this.emit("error", message, "invalidQuery");
 
     // Add the track, if successfully added and nothing is playing
     if(await this.addTrack(message, query) && server.isPlaying === false) {

@@ -38,7 +38,7 @@ function getTrack(track, title, timestamp, reveal = false) {
       }
     ],
     "thumbnail": {
-      "url": track.thumbnail && track.amq === null ? track.thumbnail : "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
+      "url": track.thumbnail && !track.amq ? track.thumbnail : "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
     }
   }};
 }
@@ -54,79 +54,108 @@ function formatTime(time) {
   return formattedTime;
 }
 
-function getPrintableQueue(queue, currentTrack) {
-  if(queue === null) return codify("Queue empty   ;(");
-  if(queue.length === 0) return codify("Queue empty   ;(");
+function getPrintableQueue(queue, currentTrack, offset = 0) {
+  const charLimit = 34;
+
+  let message = "glsl\n";
+  let counter = 0;
+
+  message += queue.map(track => {
+    const t = track.title;
+    const tL = track.title.length;
+
+    let title = 
+      tL > charLimit ? `${t.substr(0, charLimit - 3)}...` : t;
+
+    title = title.padEnd(charLimit, " ");
+
+    const position = offset + (counter++);
+
+    let r = `${position + 1}) ${title} ${formatTime(track.duration)}`;
+
+    if(position === currentTrack)
+      r += "\n    ⬑ current track";
+
+    return r;
+  })
+  .join('\n');
+
+  return codify(message);
+}
+
+async function printQueue(message, queue, currentTrack) {
+  if(!queue || queue.length === 0) 
+    return message.channel.send(codify("Queue empty   ;("));
 
   let currentPage = 0;
 
-  const sliceAmount = 10;
-  const charLimit = 34;
+  const sliceAmount = 20;
   const embedSlices = [];
 
   for(let i = 0; i < queue.length; i += sliceAmount) {
-    const slice = queue.slice(i, sliceAmount);
+    const slice = queue.slice(i, i + sliceAmount);
     const embed = new MessageEmbed();
-    let message = "glsl\n";
-    let counter = 0;
 
-    message += slice.map(track => {
-      const t = track.title;
-      const tL = track.title.length;
-
-      let title = 
-        tL > charLimit ? `${t.substr(0, charLimit - 3)}...` : t;
-
-      title = title.padEnd(charLimit, " ");
-
-      const position = i + (counter++);
-
-      let r = `${position + 1}) ${title} ${formatTime(track.duration)}`;
-
-      if(position === currentTrack)
-        r += "\n    ⬑ current track";
-
-      return r;
-    })
-    .join('\n');
-
-    embed.setDescription(codify(message));
+    embed.setDescription(getPrintableQueue(slice, currentTrack, i));
 
     embedSlices.push(embed);
   }
 
-  const m1 = `Current Page: ${currentPage + 1}/${embedSlices.length}`
-
+  const m1 = `**Current Page: ${currentPage + 1}/${embedSlices.length}**`;
   const queueEmbed = await message.channel.send(m1, embedSlices[currentPage]);
+
   queueEmbed.react("⬅️");
   queueEmbed.react("➡️");
+  queueEmbed.react("❌");
 
   const collector = queueEmbed.createReactionCollector((reaction, user) =>
-    ['⬅️', '➡️'].includes(reaction) && (message.author.id === user.id)
+    ["⬅️", "➡️", "❌"].includes(reaction.emoji.name) && (message.author.id === user.id)
   )
 
-  collector.on('collect', (reaction, user) => {
+  collector.on('collect', async (reaction, user) => {
+    switch(reaction.emoji.name) {
+      case "➡️": {
+        if(currentPage + 1 === embedSlices.length) break;
 
-    
+        currentPage++;
+
+        const m = `**Current Page: ${currentPage + 1}/${embedSlices.length}**`;
+        queueEmbed.edit(m, embedSlices[currentPage]);
+        break;
+      }
+      case "⬅️": {
+        if(currentPage === 0) break;
+        
+        currentPage--;
+
+        const m = `**Current Page: ${currentPage + 1}/${embedSlices.length}**`;
+        queueEmbed.edit(m, embedSlices[currentPage]);
+        break;
+      }
+      case "❌": {
+        collector.stop();
+        await queueEmbed.delete();
+        break;
+      }
+    }
   })
-
 }
 
 function getReveal(track, timestamp) {
-  if(track === null) return getSimpleEmbed("⚠️ There is no song at this position...");
-  if(track.amq === null) return getSimpleEmbed("⚠️ This is not an AMQ song...");
+  if(!track) return getSimpleEmbed("⚠️ There is no song at this position...");
+  if(!track.amq) return getSimpleEmbed("⚠️ This is not an AMQ song...");
 
   return getTrack(track, `"${track.amq.songName}"`, timestamp, reveal = true);
 }
 
 function getSong(track, timestamp) {
-  if(track === null) return getSimpleEmbed("⚠️ There is no song at this position...");
+  if(!track) return getSimpleEmbed("⚠️ There is no song at this position...");
   
   return getTrack(track, "---------- Song ----------", timestamp);
 }
 
 function getNowPlaying(track, timestamp) {
-  if(track === null) return getSimpleEmbed("⚠️ Nothing is playing right now...");
+  if(!track) return getSimpleEmbed("⚠️ Nothing is playing right now...");
 
   return getTrack(track, "Now Playing...", timestamp);
 }
@@ -214,7 +243,7 @@ function getSimpleEmbed(description) {
 module.exports = {
   "formatTime": formatTime,
   "codify": codify,
-  "getPrintableQueue": getPrintableQueue,
+  "printQueue": printQueue,
   "getNowPlaying": getNowPlaying,
   "getSimpleEmbed": getSimpleEmbed,
   "getMoveEmbed": getMoveEmbed,
