@@ -732,7 +732,7 @@ class Player extends EventEmitter {
       })
       .on("start", () => {
         // If it is AMQ song and guess mode is on, then set guess timer
-        if(!track.amq || !server.amq.guessMode) return;
+        if(!track.amq || !server.amq.guessMode || !track.amq.isGuessable) return;
 
         setTimeout(() => {
           // Error handling

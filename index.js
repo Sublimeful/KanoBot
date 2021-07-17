@@ -152,7 +152,7 @@ player.on("notification", (message, type, data) => {
       const m1 = getSimpleEmbed("🎉 Guessing has ended!");
       let m2;
 
-      if(data.amq.guessedCorrectly.length === 0) {
+      if(data.amq.guessedCorrectly.size === 0) {
         m2 = getSimpleEmbed("No one guessed correctly ;(");
       } else {
         let val = "";
