@@ -148,7 +148,7 @@ function getReveal(track, timestamp) {
 
   track.amq.reveal();
 
-  return getTrack(track, `"${track.amq.songName}"`, timestamp);
+  return getTrack(track, "---------- Reveal ----------", timestamp);
 }
 
 function getSong(track, timestamp) {

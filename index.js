@@ -15,7 +15,7 @@ let processor;
 player.on("notification", (message, type, data) => {
   switch(type) {
     case "trackStart": {
-      const m1 = getNowPlaying(data, 0);
+      const m1 = getNowPlaying(data.track, data.seek);
       message.channel.send(m1);
       break;
     }
@@ -144,7 +144,7 @@ player.on("notification", (message, type, data) => {
       break;
     }
     case "amqGuessMade": {
-      const m1 = getSimpleEmbed(`**----- ${message.author.username} -----**${codify("Your guess has been recorded!")}`);
+      const m1 = getSimpleEmbed(`**---------- ${message.author.username} ----------**${codify("Your guess has been recorded!")}`);
       message.channel.send(m1);
       break;
     }
@@ -268,6 +268,11 @@ player.on("error", (message, reason, data) => {
     }
     case "guessModeDisabled": {
       const m1 = getSimpleEmbed(`⚠️ Guess mode is currently disabled!`);
+      message.channel.send(m1);
+      break;
+    }
+    case "notGuessable": {
+      const m1 = getSimpleEmbed(`⚠️ The current AMQ song is not guessable!`);
       message.channel.send(m1);
       break;
     }
