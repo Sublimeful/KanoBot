@@ -124,7 +124,7 @@ class Player extends EventEmitter {
 
     if(!track) return null;
 
-    track.title = `[Anime Music Quiz] ${songType}`;
+    track.title = server.amq.guessMode ? `[AMQ Guess] ${songType}` : `[AMQ Normal] ${songType}`;
     track.amq = {
       songType: songType,
       songName: songName,
@@ -133,7 +133,8 @@ class Player extends EventEmitter {
       animeTitle: animeTitle,
       guessTitles: new Set([animeTitle.toLowerCase()]),
       malID: malID,
-      isGuessable: true,
+      isGuessable: server.amq.guessMode,
+      guessStarted: false,
       guessedCorrectly: new Set(),
       guessTimeout: null,
       revealed: false,
@@ -144,24 +145,26 @@ class Player extends EventEmitter {
       }
     };
 
-    // Get alternate titles and add it to guessTitles
-    const res = await fetch(`https://api.jikan.moe/v3/anime/${malID}`);
+    if(track.amq.isGuessable) {
+      // Get alternate titles and add it to guessTitles
+      const res = await fetch(`https://api.jikan.moe/v3/anime/${malID}`);
 
-    // If something failed with the api then return null
-    if(res.ok) {
-      const data = await res.json();
+      // If something failed with the api then return null
+      if(res.ok) {
+        const data = await res.json();
 
-      if(data.title_english) {
-        track.amq.guessTitles.add(data.title_english.toLowerCase());
+        if(data.title_english) {
+          track.amq.guessTitles.add(data.title_english.toLowerCase());
+        }
+
+        if(data.title_japanese) {
+          track.amq.guessTitles.add(data.title_japanese.toLowerCase());
+        }
+
+        data.title_synonyms.forEach(title => {
+          track.amq.guessTitles.add(title.toLowerCase());
+        })
       }
-
-      if(data.title_japanese) {
-        track.amq.guessTitles.add(data.title_japanese.toLowerCase());
-      }
-
-      data.title_synonyms.forEach(title => {
-        track.amq.guessTitles.add(title.toLowerCase());
-      })
     }
 
     return track;
@@ -356,6 +359,18 @@ class Player extends EventEmitter {
     if(trackPosition < 0 || trackPosition >= server.queue.length)
       return this.emit("error", message, "argsOutOfBounds");
 
+    // Prevent AMQ tracks from being guessed on more than once
+    if(server.isPlaying) {
+      const ct = server.queue[server.currentTrack];
+      if (ct.amq && ct.amq.isGuessable && ct.amq.guessStarted) {
+        clearTimeout(ct.amq.guessTimeout);
+
+        ct.amq.reveal();
+        ct.amq.isGuessable = false;
+        this.emit("notification", message, "guessModeExpired", "previous track!");
+      }
+    }
+
     server.currentTrack = trackPosition;
     await this.play(message, server.queue[trackPosition]);
   }
@@ -463,6 +478,18 @@ class Player extends EventEmitter {
       // When the connection has been cut(or disconnected), set the connection to null
       // and isPlaying status to false
       server.connection.on("disconnect", () => {
+        // Prevent AMQ tracks from being guessed on more than once
+        if(server.isPlaying) {
+          const ct = server.queue[server.currentTrack];
+          if (ct && ct.amq && ct.amq.isGuessable) {
+            clearTimeout(ct.amq.guessTimeout);
+
+            ct.amq.reveal();
+            ct.amq.isGuessable = false;
+            this.emit("notification", message, "guessModeExpired", "current track!");
+          }
+        }
+
         server.connection = null;
         server.isPlaying = false;
         this.emit("notification", message, "disconnected");
@@ -587,7 +614,7 @@ class Player extends EventEmitter {
   /* Toggles guess mode */
   async toggleGuessMode(message) {
     const server = this.getContract(message);
-
+    
     this.emit("notification", message, "toggleGuessMode", server.amq.guessMode = !server.amq.guessMode);
   }
 
@@ -598,8 +625,6 @@ class Player extends EventEmitter {
     // Error handling
     if(!guess)
       return this.emit("error", message, "invalidArgs");
-    if(!server.amq.guessMode)
-      return this.emit("error", message, "guessModeDisabled");
     if(!server.isPlaying)
       return this.emit("error", message, "isNotPlaying");
     if(!server.queue[server.currentTrack].amq)
@@ -617,6 +642,8 @@ class Player extends EventEmitter {
         break;
       }
     }
+
+    message.delete();
 
     this.emit("notification", message, "amqGuessMade");
   }
@@ -639,14 +666,12 @@ class Player extends EventEmitter {
       // ; generate and add an AMQ track
       if (await this.addAMQ(message)) {
         // ; then play that added track
-        await this.jump(message, server.currentTrack + 1);
+        await this.jump(message, server.queue.length - 1);
       }
-      return false;
+      return true;
     }
 
-    server.currentTrack = server.queue.length;
     await this.stop(message);
-
     return false;
   }
 
@@ -715,7 +740,7 @@ class Player extends EventEmitter {
     }
 
     // Set seek sample for guessmode (5 seconds of leeway)
-    let seek = (server.amq.guessMode && track.amq && track.amq.isGuessable) ? Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
+    let seek = (track.amq && track.amq.isGuessable) ? Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
     if(seek < 0) seek = 0;
 
     server.connection
@@ -733,18 +758,21 @@ class Player extends EventEmitter {
       })
       .on("start", () => {
         // If it is AMQ song and guess mode is on, then set guess timer
-        if(!track.amq || !server.amq.guessMode || !track.amq.isGuessable) return;
+        if(!track.amq || !track.amq.isGuessable) return;
 
+        // Set guessStarted to true to mark that guessing has started for track
+        track.amq.guessStarted = true;
+        
         // Clear the previous setTimeout so it doesn't overlap
         clearTimeout(track.guessTimeout);
 
-        track.guessTimeout = setTimeout(() => {
+        track.guessTimeout = setTimeout(async () => {
           // Error handling
-          if(!server.amq.guessMode || !track.amq.isGuessable || !server.isPlaying || server.queue[server.currentTrack] !== track) return;
+          if(!server.isPlaying || !track.amq.isGuessable || server.queue[server.currentTrack] !== track) return;
 
           track.amq.reveal();
-
           this.emit("notification", message, "amqGuessEnded", track);
+          await this.skip(message);
         }, Math.min((track.duration - 5) * 1000, server.amq.guessTime * 1000));
       })
 
@@ -764,6 +792,8 @@ class Player extends EventEmitter {
 
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
+    if(server.queue[server.currentTrack].amq && server.queue[server.currentTrack].amq.isGuessable) 
+      return this.emit("error", message, "guessMode");
 
     server.connection.dispatcher.pause();
     this.emit("notification", message, "pause");
@@ -775,6 +805,8 @@ class Player extends EventEmitter {
 
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
+    if(server.queue[server.currentTrack].amq && server.queue[server.currentTrack].amq.isGuessable) 
+      return this.emit("error", message, "guessMode");
 
     if(server.isPlaying) {
       server.connection.dispatcher.resume();
@@ -789,6 +821,8 @@ class Player extends EventEmitter {
     // Error handling
     if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
+    if(server.queue[server.currentTrack].amq && server.queue[server.currentTrack].amq.isGuessable) 
+      return this.emit("error", message, "guessMode");
 
     const track = server.queue[server.currentTrack];
 
@@ -896,7 +930,7 @@ class Player extends EventEmitter {
     if(track && server.isPlaying === false) {
       if(Array.isArray(track)) {
         // If track is a list of tracks (playlist)
-        await this.jump(message, server.currentTrack + 1);
+        await this.jump(message, server.queue.length - track.length);
       } else {
         await this.jump(message, server.queue.length - 1);
       }

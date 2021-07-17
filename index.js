@@ -166,8 +166,11 @@ player.on("notification", (message, type, data) => {
         m2 = getSimpleEmbed(`**----- Correct Players -----**${codify(val)}`);
       }
 
+      const m3 = getReveal(data, player.getTimeStamp(message)/1000);
+
       message.channel.send(m1);
       message.channel.send(m2);
+      message.channel.send(m3);
       break;
     }
     case "guessTime": {
@@ -186,6 +189,11 @@ player.on("notification", (message, type, data) => {
     case "toggleGuessMode": {
       const enabled = data ? "Enabled" : "Disabled";
       const m1 = getSimpleEmbed(`**----- Guess Mode -----**${codify(enabled)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "guessModeExpired": {
+      const m1 = getSimpleEmbed(`🛈 Guess mode has expired for ${data}`);
       message.channel.send(m1);
       break;
     }
@@ -266,13 +274,13 @@ player.on("error", (message, reason, data) => {
       message.channel.send(m1);
       break;
     }
-    case "guessModeDisabled": {
-      const m1 = getSimpleEmbed(`⚠️ Guess mode is currently disabled!`);
+    case "notGuessable": {
+      const m1 = getSimpleEmbed(`⚠️ The current AMQ song is not guessable!`);
       message.channel.send(m1);
       break;
     }
-    case "notGuessable": {
-      const m1 = getSimpleEmbed(`⚠️ The current AMQ song is not guessable!`);
+    case "guessMode": {
+      const m1 = getSimpleEmbed(`⚠️ Cannot perform this action while in guess mode!`);
       message.channel.send(m1);
       break;
     }
@@ -417,6 +425,85 @@ client.on("message", async message => {
         await player.loop(message, args[0]);
         break;
       }
+      case "guess": {
+        await player.guessAMQ(message, args.join(" "));
+        break;
+      }
+      case "reveal": {
+        const c = (!args[0] || args[0] === "current" || args[0] === "c");
+        if(c && serverIsPlaying === false) {
+          const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
+          message.channel.send(m1);
+          break;
+        }
+        const arg = 
+        !args[0]                                  ? serverCurrentTrack     :
+        args[0] === "current" || args[0] === "c" ? serverCurrentTrack     :
+        args[0] === "first"   || args[0] === "f" ? 0                      :
+        args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1 :
+        parseInt(args[0]) - 1;
+        const tsc = (arg === serverCurrentTrack && serverIsPlaying);
+        const ts = tsc ? Math.floor(player.getTimeStamp(message)/1000) : null;
+        const m1 = getReveal(serverQueue[arg], ts);
+        message.channel.send(m1);
+        break;
+      }
+      case "guesstime": {
+        await player.setGuessTime(message, parseFloat(args[0]));
+        break;
+      }
+      case "guessmode": {
+        await player.toggleGuessMode(message);
+        break;
+      }
+      case "mal": {
+        switch(args.shift()?.toLowerCase()) {
+          case "list": {
+            const usernames = player.getMALUsernames(message);
+
+            if(usernames.length === 0) {
+              const m1 = getSimpleEmbed("⚠️ There are no usernames in the MAL list");
+              message.channel.send(m1);
+              break;
+            }
+
+            let val = "";
+
+            usernames.forEach(username => {
+              val += `${username}, `;
+            })
+
+            val = val.substr(0, val.length - 2);
+
+            const m1 = getSimpleEmbed(codify(val));
+            message.channel.send(m1);
+            break;
+          }
+          case "add": {
+            await player.addMAL(message, args[0]);
+            break;
+          }
+          case "del": {
+            await player.delMAL(message, args[0]);
+            break;
+          }
+          case "clear": {
+            await player.clearMAL(message);
+            break;
+          }
+          case "chance": {
+            await player.setMALChance(message, parseFloat(args[0]));
+            break;
+          }
+          default: {
+            const mention = message.author.toString();
+            const m1 = getSimpleEmbed(`⚠️ Please provide a valid command! [${mention}]`);
+            message.channel.send(m1);
+            break;
+          }
+        }
+        break;
+      }
       case "amq": {
         switch(args.shift()?.toLowerCase()) {
           case undefined:
@@ -424,87 +511,8 @@ client.on("message", async message => {
             await player.toggleAMQ(message);
             break;
           }
-          case "reveal": {
-            const c = (!args[0] || args[0] === "current" || args[0] === "c");
-            if(c && serverIsPlaying === false) {
-              const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
-              message.channel.send(m1);
-              break;
-            }
-            const arg = 
-             !args[0]                                  ? serverCurrentTrack     :
-              args[0] === "current" || args[0] === "c" ? serverCurrentTrack     :
-              args[0] === "first"   || args[0] === "f" ? 0                      :
-              args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1 :
-                                                       parseInt(args[0]) - 1;
-            const tsc = (arg === serverCurrentTrack && serverIsPlaying);
-            const ts = tsc ? Math.floor(player.getTimeStamp(message)/1000) : null;
-            const m1 = getReveal(serverQueue[arg], ts);
-            message.channel.send(m1);
-            break;
-          }
           case "generate": {
             await player.addAMQ(message);
-            break;
-          }
-          case "guess": {
-            await player.guessAMQ(message, args.join(" "));
-            break;
-          }
-          case "guesstime": {
-            await player.setGuessTime(message, parseFloat(args[0]));
-            break;
-          }
-          case "guessmode": {
-            await player.toggleGuessMode(message);
-            break;
-          }
-          case "mal": {
-            switch(args.shift()?.toLowerCase()) {
-              case "list": {
-                const usernames = player.getMALUsernames(message);
-
-                if(usernames.length === 0) {
-                  const m1 = getSimpleEmbed("⚠️ There are no usernames in the MAL list");
-                  message.channel.send(m1);
-                  break;
-                }
-
-                let val = "";
-
-                usernames.forEach(username => {
-                  val += `${username}, `;
-                })
-
-                val = val.substr(0, val.length - 2);
-
-                const m1 = getSimpleEmbed(codify(val));
-                message.channel.send(m1);
-                break;
-              }
-              case "add": {
-                await player.addMAL(message, args[0]);
-                break;
-              }
-              case "del": {
-                await player.delMAL(message, args[0]);
-                break;
-              }
-              case "clear": {
-                await player.clearMAL(message);
-                break;
-              }
-              case "chance": {
-                await player.setMALChance(message, parseFloat(args[0]));
-                break;
-              }
-              default: {
-                const mention = message.author.toString();
-                const m1 = getSimpleEmbed(`⚠️ Please provide a valid command! [${mention}]`);
-                message.channel.send(m1);
-                break;
-              }
-            }
             break;
           }
           default: {

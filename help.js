@@ -72,49 +72,49 @@ module.exports = {
     description: 'Set the loop to \"off\", \"track\" or \"queue\"',
     format: 'loop [type]'
   },
-  'amq toggle': {
+  'reveal': {
+    description: 'Reveals an AMQ song',
+    format: 'reveal, reveal [position]'
+  },
+  'guess': {
+    description: 'Guess the currently playing AMQ track',
+    format: 'guess [guess]'
+  },
+  'guesstime': {
+    description: 'Sets the guess time',
+    format: 'guesstime [time (seconds)]'
+  },
+  'guessmode': {
+    description: 'Toggle guessing mode',
+    format: 'guessmode'
+  },
+  'amq [toggle]': {
     description: 'Toggles AMQ mode (Anime Music Quiz)',
     format: 'amq, amq toggle'
-  },
-  'amq reveal': {
-    description: 'Reveals an AMQ song',
-    format: 'amq reveal, amq reveal [position]'
   },
   'amq generate': {
     description: 'Generates an AMQ song',
     format: 'amq generate'
   },
-  'amq mal add': {
+  'mal add': {
     description: 'Adds a MAL account',
-    format: 'amq mal add [MyAnimeList Username]'
+    format: 'mal add [MyAnimeList Username]'
   },
-  'amq mal del': {
+  'mal del': {
     description: 'Removes a MAL account',
-    format: 'amq mal del [MyAnimeList Username]'
+    format: 'mal del [MyAnimeList Username]'
   },
-  'amq mal clear': {
+  'mal clear': {
     description: 'Removes all MAL accounts',
-    format: 'amq mal clear'
+    format: 'mal clear'
   },
-  'amq mal chance': {
+  'mal chance': {
     description: 'Sets the chance that AMQ will use MAL',
-    format: 'amq mal chance [0.0 - 100.0]'
+    format: 'mal chance [0.0 - 100.0]'
   },
-  'amq mal list': {
+  'mal list': {
     description: 'Lists all the usernames in the MAL list',
-    format: 'amq mal list'
-  },
-  'amq guess': {
-    description: 'Guess the currently playing AMQ track',
-    format: 'amq guess [guess]'
-  },
-  'amq guessmode': {
-    description: 'Toggle guessing mode',
-    format: 'amq guessmode'
-  },
-  'amq guesstime': {
-    description: 'Sets the guess time',
-    format: 'amq guesstime [time (seconds)]'
+    format: 'mal list'
   }
 }
 
