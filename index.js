@@ -166,7 +166,7 @@ player.on("notification", (message, type, data) => {
         m2 = getSimpleEmbed(`**----- Correct Players -----**${codify(val)}`);
       }
 
-      const m3 = getReveal(data, player.getTimeStamp(message)/1000);
+      const m3 = getReveal(data, Math.floor(player.getTimeStamp(message)/1000));
 
       message.channel.send(m1);
       message.channel.send(m2);
