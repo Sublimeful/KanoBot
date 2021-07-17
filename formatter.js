@@ -6,10 +6,10 @@ function codify(str) {
   return `\`\`\`${str}\`\`\``;
 }
 
-function getTrack(track, title, timestamp, reveal = false) {
+function getTrack(track, title, timestamp) {
   // Timestamp is in seconds
   let value;
-  if(track.amq && reveal) {
+  if(track.amq && track.amq.revealed) {
     const rS = track.amq.releaseSeason;
     const rY = track.amq.releaseYear;
 
@@ -38,7 +38,8 @@ function getTrack(track, title, timestamp, reveal = false) {
       }
     ],
     "thumbnail": {
-      "url": track.thumbnail && !track.amq ? track.thumbnail : "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
+      "url": track.thumbnail && (!track.amq || (track.amq && track.amq.revealed)) ? track.thumbnail : 
+            "https://i.pinimg.com/originals/a5/23/c9/a523c90df954c60bb327dfac20b65022.jpg"
     }
   }};
 }
@@ -145,7 +146,9 @@ function getReveal(track, timestamp) {
   if(!track) return getSimpleEmbed("⚠️ There is no song at this position...");
   if(!track.amq) return getSimpleEmbed("⚠️ This is not an AMQ song...");
 
-  return getTrack(track, `"${track.amq.songName}"`, timestamp, reveal = true);
+  track.amq.reveal();
+
+  return getTrack(track, `"${track.amq.songName}"`, timestamp);
 }
 
 function getSong(track, timestamp) {

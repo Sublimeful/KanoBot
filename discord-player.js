@@ -7,7 +7,7 @@ const yts = require("yt-search");
 const spotify = require("spotify-url-info");
 const scdl = require('soundcloud-downloader').default;
 
-const { getAnimeInfo, getQueryType } = require("./utils");
+const { getAnimeInfo, getQueryType, stringSimilarity } = require("./utils");
 
 ffmpeg.setFfprobePath(ffprobe.path);
 
@@ -72,6 +72,8 @@ class Player extends EventEmitter {
       loop: "off",
       amq: {
         isEnabled: false,
+        guessMode: false,
+        guessTime: 20,
         mal: {
           chance: 1.0,
           usernames: []
@@ -127,7 +129,15 @@ class Player extends EventEmitter {
       releaseSeason: releaseSeason,
       releaseYear: releaseYear,
       animeTitle: animeTitle,
-      malID: malID
+      malID: malID,
+      isGuessable: true,
+      guessedCorrectly: [],
+      revealed: false,
+      reveal: function() {
+        this.revealed = true;
+        this.isGuessable = false;
+        track.title = `${songName} - ${animeTitle} ${songType}`;
+      }
     };
 
     return track;
@@ -534,6 +544,54 @@ class Player extends EventEmitter {
     return track;
   }
 
+  /* Sets the guess time of AMQ */
+  async setGuessTime(message, time) {
+    const server = this.getContract(message);
+
+    // Error handling (show the guess time if time is not a number)
+    if(isNaN(time)) 
+      return this.emit("notification", message, "guessTime", server.amq.guessTime);
+
+    // Thresholds n stuff
+    if(time < 5) time = 5;
+    if(time > 60) time = 60;
+
+    server.amq.guessTime = time;
+    return this.emit("notification", message, "setGuessTime", server.amq.guessTime);
+  }
+
+  /* Toggles guess mode */
+  async toggleGuessMode(message) {
+    const server = this.getContract(message);
+
+    this.emit("notification", message, "toggleGuessMode", server.amq.guessMode = !server.amq.guessMode);
+  }
+
+  /* Guess the currently playing AMQ song */
+  async guessAMQ(message, guess) {
+    const server = this.getContract(message);
+
+    // Error handling
+    if(!server.amq.guessMode)
+      return this.emit("error", message, "guessModeDisabled");
+    if(!guess)
+      return this.emit("error", message, "invalidArgs");
+    if(!server.isPlaying)
+      return this.emit("error", message, "isNotPlaying");
+    if(!server.queue[server.currentTrack].amq)
+      return this.emit("error", message, "notAMQTrack");
+
+    const ct = server.queue[server.currentTrack]
+
+    console.log(`Guess: ${guess} Title: ${ct.amq.animeTitle} Similar: ${stringSimilarity(guess.toLowerCase(), ct.amq.animeTitle.toLowerCase())}`);
+
+    if(stringSimilarity(guess.toLowerCase(), ct.amq.animeTitle.toLowerCase()) >= 0.4) {
+      ct.amq.guessedCorrectly.push(message.author);
+    }
+
+    this.emit("notification", message, "amqGuessMade");
+  }
+
   /* Skips current track and attempts to play next track, returns success */
   async skip(message) {
     // Check if there is a next track in queue
@@ -646,6 +704,20 @@ class Player extends EventEmitter {
 
     server.isPlaying = true;
     this.emit("notification", message, "trackStart", track);
+
+    // If it is AMQ song and guess mode is on, then set guess timer
+    if(!track.amq || !server.amq.guessMode) return;
+
+    console.log(track.amq.animeTitle);
+
+    setTimeout(() => {
+      // Error handling
+      if(!server.amq.guessMode || !track.amq.isGuessable || !server.isPlaying || server.queue[server.currentTrack] !== track) return;
+
+      track.amq.reveal();
+
+      this.emit("notification", message, "amqGuessEnded", track);
+    }, server.amq.guessTime * 1000);
   }
 
   /* Pause playback */

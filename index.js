@@ -143,6 +143,52 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
+    case "amqGuessMade": {
+      const m1 = getSimpleEmbed(`**----- ${message.author.username} -----**${codify("Your guess has been recorded!")}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "amqGuessEnded": {
+      const m1 = getSimpleEmbed("🎉 Guessing has ended!");
+      let m2;
+
+      if(data.amq.guessedCorrectly.length === 0) {
+        m2 = getSimpleEmbed("No one guessed correctly ;(");
+      } else {
+        let val = "";
+
+        data.amq.guessedCorrectly.forEach(player => {
+          val += `${player.username}, `;
+        })
+
+        val = val.substr(0, val.length - 2);
+
+        m2 = getSimpleEmbed(`**----- Correct Players -----**${codify(val)}`);
+      }
+
+      message.channel.send(m1);
+      message.channel.send(m2);
+      break;
+    }
+    case "guessTime": {
+      const time = `${data} seconds`;
+      const m1 = getSimpleEmbed(`**----- Guess Time -----**${codify(time)}`);
+      message.channel.send(m1);
+      
+      break;
+    }
+    case "setGuessTime": {
+      const time = `${data} seconds`;
+      const m1 = getSimpleEmbed(`**----- New Guess Time -----**${codify(time)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "toggleGuessMode": {
+      const enabled = data ? "Enabled" : "Disabled";
+      const m1 = getSimpleEmbed(`**----- Guess Mode -----**${codify(enabled)}`);
+      message.channel.send(m1);
+      break;
+    }
     default: {
       const m1 = getSimpleEmbed("How is this even possible?");
       message.channel.send(m1);
@@ -215,6 +261,16 @@ player.on("error", (message, reason, data) => {
       message.channel.send(m1);
       break;
     }
+    case "notAMQTrack": {
+      const m1 = getSimpleEmbed(`⚠️ The currently playing track is not an AMQ song!`);
+      message.channel.send(m1);
+      break;
+    }
+    case "guessModeDisabled": {
+      const m1 = getSimpleEmbed(`⚠️ Guess mode is currently disabled!`);
+      message.channel.send(m1);
+      break;
+    }
     default: {
       const m1 = getSimpleEmbed("How the fuck did this even happen?");
       message.channel.send(m1);
@@ -229,7 +285,6 @@ client.on("message", async message => {
   if (message.author.bot || !message.content.startsWith(prefix)) return;
 
   const args = message.content.slice(prefix.length).trim().split(/ +/g);
-  const command = args.shift().toLowerCase();
 
   const serverQueue = player.getQueue(message);
   const serverCurrentTrack = player.getCurrentTrack(message);
@@ -239,7 +294,7 @@ client.on("message", async message => {
   await processor;
 
   processor = new Promise(async (resolve, _) => {
-    switch(command) {
+    switch(args.shift()?.toLowerCase()) {
       case "help": {
         const m1 = getHelp(message, client, args.join(" "));
         message.channel.send(m1);
@@ -358,25 +413,25 @@ client.on("message", async message => {
         break;
       }
       case "amq": {
-        switch(args[0]) {
+        switch(args.shift()?.toLowerCase()) {
           case undefined:
           case "toggle": {
             await player.toggleAMQ(message);
             break;
           }
           case "reveal": {
-            const c = (!args[1] || args[1] === "current" || args[1] === "c");
+            const c = (!args[0] || args[0] === "current" || args[0] === "c");
             if(c && serverIsPlaying === false) {
               const m1 = getSimpleEmbed("⚠️ Nothing is playing right now...");
               message.channel.send(m1);
               break;
             }
             const arg = 
-             !args[1]                                  ? serverCurrentTrack     :
-              args[1] === "current" || args[1] === "c" ? serverCurrentTrack     :
-              args[1] === "first"   || args[1] === "f" ? 0                      :
-              args[1] === "last"    || args[1] === "l" ? serverQueue.length - 1 :
-                                                       parseInt(args[1]) - 1;
+             !args[0]                                  ? serverCurrentTrack     :
+              args[0] === "current" || args[0] === "c" ? serverCurrentTrack     :
+              args[0] === "first"   || args[0] === "f" ? 0                      :
+              args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1 :
+                                                       parseInt(args[0]) - 1;
             const tsc = (arg === serverCurrentTrack && serverIsPlaying);
             const ts = tsc ? Math.floor(player.getTimeStamp(message)/1000) : null;
             const m1 = getReveal(serverQueue[arg], ts);
@@ -387,8 +442,20 @@ client.on("message", async message => {
             await player.addAMQ(message);
             break;
           }
+          case "guess": {
+            await player.guessAMQ(message, args.join(" "));
+            break;
+          }
+          case "guesstime": {
+            await player.setGuessTime(message, parseFloat(args[0]));
+            break;
+          }
+          case "guessmode": {
+            await player.toggleGuessMode(message);
+            break;
+          }
           case "mal": {
-            switch(args[1]) {
+            switch(args.shift()?.toLowerCase()) {
               case "list": {
                 const usernames = player.getMALUsernames(message);
 
@@ -411,11 +478,11 @@ client.on("message", async message => {
                 break;
               }
               case "add": {
-                await player.addMAL(message, args[2]);
+                await player.addMAL(message, args[0]);
                 break;
               }
               case "del": {
-                await player.delMAL(message, args[2]);
+                await player.delMAL(message, args[0]);
                 break;
               }
               case "clear": {
@@ -423,7 +490,7 @@ client.on("message", async message => {
                 break;
               }
               case "chance": {
-                await player.setMALChance(message, parseFloat(args[2]));
+                await player.setMALChance(message, parseFloat(args[0]));
                 break;
               }
               default: {
