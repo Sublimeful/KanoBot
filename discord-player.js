@@ -579,6 +579,7 @@ class Player extends EventEmitter {
     if(time < 5) time = 5;
     if(time > 60) time = 60;
 
+    server.amq.guessTime = time;
     return this.emit("notification", message, "setGuessTime", server.amq.guessTime);
   }
 
