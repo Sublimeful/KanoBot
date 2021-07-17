@@ -579,7 +579,6 @@ class Player extends EventEmitter {
     if(time < 5) time = 5;
     if(time > 60) time = 60;
 
-    server.amq.guessTime = time;
     return this.emit("notification", message, "setGuessTime", server.amq.guessTime);
   }
 
@@ -608,13 +607,14 @@ class Player extends EventEmitter {
 
     const ct = server.queue[server.currentTrack]
 
-    console.log(ct.amq.guessTitles);
-    ct.amq.guessTitles.forEach(title => {
-      console.log(`Guess: ${guess} Title: ${title} Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
+    for(const title of ct.amq.guessTitles) {
+      console.log(`Guess: ${guess.padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
+
       if(stringSimilarity(guess.toLowerCase(), title) >= 0.4) {
         ct.amq.guessedCorrectly.push(message.author);
+        break;
       }
-    })
+    }
 
     this.emit("notification", message, "amqGuessMade");
   }
@@ -713,7 +713,9 @@ class Player extends EventEmitter {
     }
 
     // Set seek sample for guessmode (5 seconds of leeway)
-    const seek = (track.amq && server.amq.guessMode) ? Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
+    let seek = (track.amq && server.amq.guessMode) ? 
+                Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
+    if(seek < 0) seek = 0;
 
     server.connection
       .play(stream, { bitrate: 'auto', seek: seek })
@@ -741,7 +743,7 @@ class Player extends EventEmitter {
           track.amq.reveal();
 
           this.emit("notification", message, "amqGuessEnded", track);
-        }, server.amq.guessTime * 1000);
+        }, Math.min((track.duration - 5) * 1000, server.amq.guessTime * 1000));
       })
 
     // Set the seek for sample (ms)
