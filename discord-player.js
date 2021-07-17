@@ -135,6 +135,7 @@ class Player extends EventEmitter {
       malID: malID,
       isGuessable: true,
       guessedCorrectly: new Set(),
+      guessTimeout: null,
       revealed: false,
       reveal: function() {
         this.revealed = true;
@@ -734,7 +735,10 @@ class Player extends EventEmitter {
         // If it is AMQ song and guess mode is on, then set guess timer
         if(!track.amq || !server.amq.guessMode || !track.amq.isGuessable) return;
 
-        setTimeout(() => {
+        // Clear the previous setTimeout so it doesn't overlap
+        clearTimeout(track.guessTimeout);
+
+        track.guessTimeout = setTimeout(() => {
           // Error handling
           if(!server.amq.guessMode || !track.amq.isGuessable || !server.isPlaying || server.queue[server.currentTrack] !== track) return;
 
