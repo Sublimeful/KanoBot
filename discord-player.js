@@ -714,8 +714,7 @@ class Player extends EventEmitter {
     }
 
     // Set seek sample for guessmode (5 seconds of leeway)
-    let seek = (track.amq && server.amq.guessMode) ? 
-                Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
+    let seek = (track.amq && server.amq.guessMode && track.amq.isGuessable) ? Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
     if(seek < 0) seek = 0;
 
     server.connection
