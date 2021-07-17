@@ -151,15 +151,15 @@ class Player extends EventEmitter {
       const data = await res.json();
 
       if(data.title_english) {
-        track.amq.guessTitles.add(data.title_english.toLowerCase());
+        track.amq.guessTitles.add(data.title_english);
       }
 
       if(data.title_japanese) {
-        track.amq.guessTitles.add(data.title_japanese.toLowerCase());
+        track.amq.guessTitles.add(data.title_japanese);
       }
 
       data.title_synonyms.forEach(title => {
-        track.amq.guessTitles.add(title.toLowerCase());
+        track.amq.guessTitles.add(title);
       })
     }
 
@@ -608,9 +608,9 @@ class Player extends EventEmitter {
     const ct = server.queue[server.currentTrack]
 
     for(const title of ct.amq.guessTitles) {
-      console.log(`Guess: ${guess.padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
+      console.log(`Guess: ${guess.padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title.toLowerCase())}`);
 
-      if(stringSimilarity(guess.toLowerCase(), title) >= 0.4) {
+      if(stringSimilarity(guess.toLowerCase(), title.toLowerCase()) >= 0.4) {
         ct.amq.guessedCorrectly.push(message.author);
         break;
       }
@@ -733,8 +733,6 @@ class Player extends EventEmitter {
       .on("start", () => {
         // If it is AMQ song and guess mode is on, then set guess timer
         if(!track.amq || !server.amq.guessMode) return;
-
-        console.log(track.amq.animeTitle);
 
         setTimeout(() => {
           // Error handling
