@@ -151,15 +151,15 @@ class Player extends EventEmitter {
       const data = await res.json();
 
       if(data.title_english) {
-        track.amq.guessTitles.add(data.title_english);
+        track.amq.guessTitles.add(data.title_english.toLowerCase());
       }
 
       if(data.title_japanese) {
-        track.amq.guessTitles.add(data.title_japanese);
+        track.amq.guessTitles.add(data.title_japanese.toLowerCase());
       }
 
       data.title_synonyms.forEach(title => {
-        track.amq.guessTitles.add(title);
+        track.amq.guessTitles.add(title.toLowerCase());
       })
     }
 
@@ -608,9 +608,9 @@ class Player extends EventEmitter {
     const ct = server.queue[server.currentTrack]
 
     for(const title of ct.amq.guessTitles) {
-      console.log(`Guess: ${guess.padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title.toLowerCase())}`);
+      console.log(`Guess: ${guess.padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
 
-      if(stringSimilarity(guess.toLowerCase(), title.toLowerCase()) >= 0.4) {
+      if(stringSimilarity(guess.toLowerCase(), title) >= 0.4) {
         ct.amq.guessedCorrectly.push(message.author);
         break;
       }
