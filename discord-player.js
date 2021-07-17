@@ -134,7 +134,7 @@ class Player extends EventEmitter {
       guessTitles: new Set([animeTitle.toLowerCase()]),
       malID: malID,
       isGuessable: true,
-      guessedCorrectly: [],
+      guessedCorrectly: new Set(),
       revealed: false,
       reveal: function() {
         this.revealed = true;
@@ -611,7 +611,7 @@ class Player extends EventEmitter {
       console.log(`Guess: ${guess.toLowerCase().padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
 
       if(stringSimilarity(guess.toLowerCase(), title) >= 0.4) {
-        ct.amq.guessedCorrectly.push(message.author);
+        ct.amq.guessedCorrectly.add(message.author);
         break;
       }
     }
