@@ -608,7 +608,7 @@ class Player extends EventEmitter {
     const ct = server.queue[server.currentTrack]
 
     for(const title of ct.amq.guessTitles) {
-      console.log(`Guess: ${guess.padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
+      console.log(`Guess: ${guess.toLowerCase().padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
 
       if(stringSimilarity(guess.toLowerCase(), title) >= 0.4) {
         ct.amq.guessedCorrectly.push(message.author);
