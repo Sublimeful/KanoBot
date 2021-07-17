@@ -106,7 +106,7 @@ class Player extends EventEmitter {
 
     this.emit("notification", message, "amqChoosingFrom", username);
 
-    const anime = await getAnimeInfo();
+    const anime = await getAnimeInfo(username);
 
     const theme = anime.themes[Math.floor(anime.themes.length * Math.random())];
     const songType = theme.themeType;

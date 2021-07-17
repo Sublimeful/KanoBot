@@ -13,7 +13,7 @@ function getTrack(track, title, timestamp) {
     const rS = track.amq.releaseSeason;
     const rY = track.amq.releaseYear;
 
-    value =  `[${track.amq.animeTitle} - ${track.title.substr(19)}](${track.url}) `;
+    value =  `[${track.title}](${track.url}) `;
     value += `[${track.requestor}]`;
     value += `\n`;
     value += `${rS[0].toUpperCase() + rS.substr(1)} ${rY}`;
