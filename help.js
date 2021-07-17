@@ -103,6 +103,18 @@ module.exports = {
   'amq mal list': {
     description: 'Lists all the usernames in the MAL list',
     format: 'amq mal list'
+  },
+  'amq guess': {
+    description: 'Guess the currently playing AMQ track',
+    format: 'amq guess [guess]'
+  },
+  'amq guessmode': {
+    description: 'Toggle guessing mode',
+    format: 'amq guessmode'
+  },
+  'amq guesstime': {
+    description: 'Sets the guess time',
+    format: 'amq guesstime [time (seconds)]'
   }
 }
 
