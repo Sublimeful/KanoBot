@@ -365,7 +365,7 @@ class Player extends EventEmitter {
     if(server.isPlaying) {
       const ct = server.queue[server.currentTrack];
       if(ct && ct.amq) {
-        clearTimeout(ct.amq.autoplayTimeout)
+        clearTimeout(ct.amq.autoplayTimeout);
         clearTimeout(ct.amq.guessTimeout);
         if (ct.amq.isGuessable && ct.amq.guessStarted) {
           ct.amq.reveal();
@@ -485,7 +485,7 @@ class Player extends EventEmitter {
         if(server.isPlaying) {
           const ct = server.queue[server.currentTrack];
           if(ct && ct.amq) {
-            clearTimeout(ct.amq.autoplayTimeout)
+            clearTimeout(ct.amq.autoplayTimeout);
             clearTimeout(ct.amq.guessTimeout);
             if (ct.amq.isGuessable && ct.amq.guessStarted) {
               ct.amq.reveal();
