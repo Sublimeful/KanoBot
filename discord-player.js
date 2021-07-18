@@ -364,13 +364,13 @@ class Player extends EventEmitter {
     // Prevent AMQ tracks from being guessed on more than once
     if(server.isPlaying) {
       const ct = server.queue[server.currentTrack];
-      if (ct.amq && ct.amq.isGuessable && ct.amq.guessStarted) {
-        clearTimeout(ct.amq.guessTimeout);
+      if(ct.amq) {
         clearTimeout(ct.amq.autoplayTimeout)
-
-        ct.amq.reveal();
-        ct.amq.isGuessable = false;
-        this.emit("notification", message, "guessModeExpired", "previous track!");
+        clearTimeout(ct.amq.guessTimeout);
+        if (ct.amq.isGuessable && ct.amq.guessStarted) {
+          ct.amq.reveal();
+          this.emit("notification", message, "guessModeExpired", "previous track!");
+        }
       }
     }
 
@@ -484,13 +484,13 @@ class Player extends EventEmitter {
         // Prevent AMQ tracks from being guessed on more than once
         if(server.isPlaying) {
           const ct = server.queue[server.currentTrack];
-          if (ct && ct.amq && ct.amq.isGuessable) {
-            clearTimeout(ct.amq.guessTimeout);
+          if(ct.amq) {
             clearTimeout(ct.amq.autoplayTimeout)
-
-            ct.amq.reveal();
-            ct.amq.isGuessable = false;
-            this.emit("notification", message, "guessModeExpired", "current track!");
+            clearTimeout(ct.amq.guessTimeout);
+            if (ct.amq.isGuessable && ct.amq.guessStarted) {
+              ct.amq.reveal();
+              this.emit("notification", message, "guessModeExpired", "current track!");
+            }
           }
         }
 
@@ -780,7 +780,7 @@ class Player extends EventEmitter {
           // Clear the previous setTimeout so it doesn't overlap
           clearTimeout(track.amq.autoplayTimeout)
 
-          // Autoplay a new AMQ track after 5 seconds
+          // Autoplay a new AMQ track after 10 seconds
           track.amq.autoplayTimeout = setTimeout(async () => {
             // Error handling
             if(!server.isPlaying || !server.amq.isEnabled || !server.amq.guessMode || server.queue[server.currentTrack + 1] || server.queue[server.currentTrack] !== track) return;
