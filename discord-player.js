@@ -366,7 +366,7 @@ class Player extends EventEmitter {
       const ct = server.queue[server.currentTrack];
       if (ct.amq && ct.amq.isGuessable && ct.amq.guessStarted) {
         clearTimeout(ct.amq.guessTimeout);
-        clearTimeout(track.autoplayTimeout)
+        clearTimeout(ct.amq.autoplayTimeout)
 
         ct.amq.reveal();
         ct.amq.isGuessable = false;
@@ -486,7 +486,7 @@ class Player extends EventEmitter {
           const ct = server.queue[server.currentTrack];
           if (ct && ct.amq && ct.amq.isGuessable) {
             clearTimeout(ct.amq.guessTimeout);
-            clearTimeout(track.autoplayTimeout)
+            clearTimeout(ct.amq.autoplayTimeout)
 
             ct.amq.reveal();
             ct.amq.isGuessable = false;
@@ -768,9 +768,9 @@ class Player extends EventEmitter {
         track.amq.guessStarted = true;
         
         // Clear the previous setTimeout so it doesn't overlap
-        clearTimeout(track.guessTimeout);
+        clearTimeout(track.amq.guessTimeout);
 
-        track.guessTimeout = setTimeout(async () => {
+        track.amq.guessTimeout = setTimeout(async () => {
           // Error handling
           if(!server.isPlaying || !track.amq.isGuessable || server.queue[server.currentTrack] !== track) return;
 
@@ -778,10 +778,10 @@ class Player extends EventEmitter {
           this.emit("notification", message, "amqGuessEnded", track);
 
           // Clear the previous setTimeout so it doesn't overlap
-          clearTimeout(track.autoplayTimeout)
+          clearTimeout(track.amq.autoplayTimeout)
 
           // Autoplay a new AMQ track after 5 seconds
-          track.autoplayTimeout = setTimeout(async () => {
+          track.amq.autoplayTimeout = setTimeout(async () => {
             // Error handling
             if(!server.isPlaying || !server.amq.isEnabled || !server.amq.guessMode || server.queue[server.currentTrack + 1] || server.queue[server.currentTrack] !== track) return;
 
@@ -790,7 +790,7 @@ class Player extends EventEmitter {
               // ; then play that added track
               await this.jump(message, server.queue.length - 1);
             }
-          }, 5000)
+          }, 10000)
         }, Math.min((track.duration - 5) * 1000, server.amq.guessTime * 1000));
       })
 
