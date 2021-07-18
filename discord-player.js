@@ -364,7 +364,7 @@ class Player extends EventEmitter {
     // Prevent AMQ tracks from being guessed on more than once
     if(server.isPlaying) {
       const ct = server.queue[server.currentTrack];
-      if(ct.amq) {
+      if(ct && ct.amq) {
         clearTimeout(ct.amq.autoplayTimeout)
         clearTimeout(ct.amq.guessTimeout);
         if (ct.amq.isGuessable && ct.amq.guessStarted) {
@@ -484,7 +484,7 @@ class Player extends EventEmitter {
         // Prevent AMQ tracks from being guessed on more than once
         if(server.isPlaying) {
           const ct = server.queue[server.currentTrack];
-          if(ct.amq) {
+          if(ct && ct.amq) {
             clearTimeout(ct.amq.autoplayTimeout)
             clearTimeout(ct.amq.guessTimeout);
             if (ct.amq.isGuessable && ct.amq.guessStarted) {
