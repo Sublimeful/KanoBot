@@ -667,6 +667,15 @@ class Player extends EventEmitter {
 
     // If anime music quiz mode is on, then 
     if(server.amq.isEnabled) {
+      // Clear the autoplayTimeout so that it doesn't double-add
+      if(server.isPlaying) {
+        const ct = server.queue[server.currentTrack];
+        if(ct && ct.amq) {
+          clearTimeout(ct.amq.autoplayTimeout);
+          clearTimeout(ct.amq.guessTimeout);
+        }
+      }
+
       // ; generate and add an AMQ track
       if (await this.addAMQ(message)) {
         // ; then play that added track
