@@ -124,7 +124,7 @@ class Player extends EventEmitter {
 
     if(!track) return null;
 
-    track.requestor = username ?? "🎲 RANDOM 🎲";
+    track.requestor = `**${username}**` ?? "🎲 **RANDOM** 🎲";
     track.title = server.amq.guessMode ? `[AMQ Guess] ${songType}` : `[AMQ Normal] ${songType}`;
     track.amq = {
       songType: songType,
