@@ -670,10 +670,7 @@ class Player extends EventEmitter {
       // Clear the autoplayTimeout so that it doesn't double-add
       if(server.isPlaying) {
         const ct = server.queue[server.currentTrack];
-        if(ct && ct.amq) {
-          clearTimeout(ct.amq.autoplayTimeout);
-          clearTimeout(ct.amq.guessTimeout);
-        }
+        if(ct && ct.amq) clearTimeout(ct.amq.autoplayTimeout);
       }
 
       // ; generate and add an AMQ track
