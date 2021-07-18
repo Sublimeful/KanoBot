@@ -773,7 +773,12 @@ class Player extends EventEmitter {
 
           track.amq.reveal();
           this.emit("notification", message, "amqGuessEnded", track);
-          await this.skip(message);
+
+          // Generate and add an AMQ track
+          if (await this.addAMQ(message)) {
+            // ; then play that added track
+            await this.jump(message, server.queue.length - 1);
+          }
         }, Math.min((track.duration - 5) * 1000, server.amq.guessTime * 1000));
       })
 
