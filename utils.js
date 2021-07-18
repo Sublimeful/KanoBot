@@ -125,8 +125,10 @@ function editDistance(s1, s2) {
 }
 
 
+
 module.exports = {
   "getAnimeInfo": getAnimeInfo,
   "getQueryType": getQueryType,
   "stringSimilarity": stringSimilarity
 }
+

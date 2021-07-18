@@ -549,7 +549,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
       // if there is still only one person left, then leave
       if (oldState.channel.members.size === 1)
         oldState.channel.leave();
-    }, 2000);
+    }, 10000);
 });
 //-->
 
@@ -558,6 +558,8 @@ client.once("ready", () => {
   console.log("Ready!");
 })
 //-->
+
+
 
 client.login(token);
 require('./server')();
