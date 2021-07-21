@@ -679,11 +679,14 @@ class Player extends EventEmitter {
 
     // If anime music quiz mode is on, then 
     if(server.amq.isEnabled) {
-      // Don't add an AMQ track if currently playing an guessmode AMQ track
+      // Don't add an AMQ track if currently playing a guessmode AMQ track
       const ct = server.queue[server.currentTrack];
-      if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) return false;
+      if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) {
+        await this.stop(message);
+        return false;
+      }
 
-      // ; generate and add an AMQ track
+      // ; Else, generate and add an AMQ track
       if (await this.addAMQ(message)) {
         // ; then play that added track
         await this.jump(message, server.queue.length - 1);
