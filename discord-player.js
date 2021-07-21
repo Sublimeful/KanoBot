@@ -877,6 +877,7 @@ class Player extends EventEmitter {
           return this.jump(message, server.currentTrack);
         if(server.currentTrack === server.queue.length - 1 && server.loop === "queue")
           return this.jump(message, 0);
+
         this.skip(message);
       })
       .on("error", err => {
