@@ -805,7 +805,7 @@ class Player extends EventEmitter {
           // Autoplay a new AMQ track after 10 seconds
           track.amq.autoplayTimeout = setTimeout(async () => {
             // Error handling
-            if(!server.isPlaying || !server.amq.isEnabled || !server.amq.guessMode || server.queue[server.currentTrack + 1] || server.queue[server.currentTrack] !== track) return;
+            if(!server.isPlaying || !server.amq.isEnabled || !server.amq.guessMode || server.queue[server.currentTrack + 1]) return;
 
             // Generate and add an AMQ track
             if (await this.addAMQ(message)) {
