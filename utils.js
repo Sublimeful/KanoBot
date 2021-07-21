@@ -53,7 +53,16 @@ async function getAnimeInfo(malUsername) {
     return await res.json();
   }
 
-  const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}/animelist`);
+  const page = await (async () => {
+    const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}`);
+    const json = await res.json();
+    const totalEntries = json.anime_stats.total_entries;
+    const pages = Math.ceil(totalEntries / 300);
+    
+    return (Math.floor(Math.random() * pages) + 1);
+  })()
+
+  const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}/animelist/all/${page}`);
 
   // If something failed with the api or username is invalid, then return null
   if(!res.ok) return null;
