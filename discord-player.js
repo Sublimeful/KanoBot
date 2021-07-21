@@ -92,17 +92,8 @@ class Player extends EventEmitter {
   }
 
   /* Generate an AMQ track Object */
-  async #generateAMQ(message) {
+  async #generateAMQ(message, username) {
     const server = this.getContract(message);
-
-    const usernames = server.amq.mal.usernames;
-
-    let username = null;
-    let rand = Math.random();
-
-    if(rand < server.amq.mal.chance && usernames.length !== 0) {
-      username = usernames[Math.floor(usernames.length * Math.random())];
-    }
 
     this.emit("notification", message, "amqChoosingFrom", username);
 
@@ -583,14 +574,29 @@ class Player extends EventEmitter {
   async addAMQ(message) {
     const server = this.getContract(message);
 
+    // Get random username
+    const usernames = server.amq.mal.usernames;
+
+    let username = null;
+    let rand = Math.random();
+
+    if(rand < server.amq.mal.chance && usernames.length !== 0) {
+      username = usernames[Math.floor(usernames.length * Math.random())];
+    }
+
     // Generate an AMQ track
     this.emit("notification", message, "addingAMQ");
-    const track = await this.#generateAMQ(message);
+    let track = await this.#generateAMQ(message, username);
 
     // Error handling
     if(!track) {
-      this.emit("error", message, "errorAddingAMQ");
-      return null;
+      track = await this.#generateAMQ(message, null);
+
+      // If no track again, then display error
+      if(!track) {
+        this.emit("error", message, "errorAddingAMQ");
+        return null;
+      }
     }
 
     server.queue.push(track);
@@ -742,11 +748,11 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     let stream;
-    let f = false;
+    let fromYTDL = false;
 
     if(track.source === "youtube" || track.source === "spotify") {
       stream = await ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
-      f = true;
+      fromYTDL = true;
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
@@ -756,7 +762,7 @@ class Player extends EventEmitter {
     if(seek < 0) seek = 0;
 
     server.connection
-      .play(stream, { type: f ? 'opus' : '', bitrate: 'auto', seek: seek })
+      .play(stream, { type: fromYTDL ? 'opus' : '', bitrate: 'auto', seek: seek })
       .on("finish", () => {
         // To prevent double adding (Dont skip or jump if current song is guessmode song)
         if(server.isPlaying) {
@@ -865,17 +871,17 @@ class Player extends EventEmitter {
     ms = ms < 0 ? 0 : (ms > track.duration * 1000 ? track.duration * 1000 : ms);
 
     let stream;
-    let f = false;
+    let fromYTDL = false;
 
     if(track.source === "youtube" || track.source === "spotify") {
       stream = await ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
-      f = true;
+      fromYTDL = true;
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
 
     server.connection
-      .play(stream, { type: f ? 'opus' : '', bitrate: 'auto', seek: ms/1000 })
+      .play(stream, { type: fromYTDL ? 'opus' : '', bitrate: 'auto', seek: ms/1000 })
       .on("finish", () => {
         if(server.loop === "track")
           return this.jump(message, server.currentTrack);
