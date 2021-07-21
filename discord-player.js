@@ -679,11 +679,9 @@ class Player extends EventEmitter {
 
     // If anime music quiz mode is on, then 
     if(server.amq.isEnabled) {
-      // Clear the autoplayTimeout so that it doesn't double-add
-      if(server.isPlaying) {
-        const ct = server.queue[server.currentTrack];
-        if(ct && ct.amq) clearTimeout(ct.amq.autoplayTimeout);
-      }
+      // Don't add an AMQ track if currently playing an guessmode AMQ track
+      const ct = server.queue[server.currentTrack];
+      if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) return false;
 
       // ; generate and add an AMQ track
       if (await this.addAMQ(message)) {
@@ -770,12 +768,6 @@ class Player extends EventEmitter {
     server.connection
       .play(stream, { type: fromYTDL ? 'opus' : '', bitrate: 'auto', seek: seek })
       .on("finish", () => {
-        // To prevent double adding (Dont skip or jump if current song is guessmode song)
-        if(server.isPlaying) {
-          const ct = server.queue[server.currentTrack];
-          if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) return;
-        }
-
         if(server.loop === "track")
           return this.jump(message, server.currentTrack);
         if(server.currentTrack === server.queue.length - 1 && server.loop === "queue")
