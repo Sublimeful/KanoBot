@@ -768,6 +768,9 @@ class Player extends EventEmitter {
     let seek = (track.amq && track.amq.isGuessable) ? Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
     if(seek < 0) seek = 0;
 
+    // Error handling
+    if(!server.connection) return;
+
     server.connection
       .play(stream, { type: fromYTDL ? 'opus' : '', bitrate: 'auto', seek: seek })
       .on("finish", () => {
@@ -880,6 +883,9 @@ class Player extends EventEmitter {
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
+
+    // Error handling
+    if(!server.connection) return;
 
     server.connection
       .play(stream, { type: fromYTDL ? 'opus' : '', bitrate: 'auto', seek: ms/1000 })
