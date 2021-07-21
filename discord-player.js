@@ -4,6 +4,7 @@ const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
 const ytdl = require("ytdl-core-discord");
 const yts = require("yt-search");
+const ytpl = require('ytpl');
 const spotify = require("spotify-url-info");
 const scdl = require('soundcloud-downloader').default;
 
@@ -273,23 +274,28 @@ class Player extends EventEmitter {
       }
       case 'youtube_playlist': {
         try {
-          const id = query.match(/(PL|UU|LL|RD|OL)[a-zA-Z0-9-_]{16,41}/)[0];
-          const playlist = await yts({ listId: id });
+          let playlist = await ytpl(query);
 
-          if (!playlist) return null;
+          const tracks = [];
 
-          const tracks = playlist.videos.map(video => {
-            return {
-              title: video.title,
-              url: `https://www.youtube.com/watch?v=${video.videoId}`,
-              duration: video.duration.seconds,
-              thumbnail: video.thumbnail,
-              requestor: message.author.toString(),
-              source: 'youtube'
+          while(true) {
+            for(const video of playlist.items) {
+              tracks.push({
+                title: video.title,
+                url: video.shortUrl,
+                duration: video.durationSec,
+                thumbnail: video.bestThumbnail.url,
+                requestor: message.author.toString(),
+                source: 'youtube'
+              })
             }
-          })
 
-          return tracks;
+            // Return tracks if there is no next page
+            if(playlist.continuation === null) return tracks;
+
+            // Else, set playlist to the next page
+            playlist = ytpl.continueReq(playlist.continuation);
+          }
         } catch(err) {return null;}
       }
       case 'youtube_video': {
