@@ -681,10 +681,7 @@ class Player extends EventEmitter {
     if(server.amq.isEnabled) {
       // Don't add an AMQ track if currently playing a guessmode AMQ track
       const ct = server.queue[server.currentTrack];
-      if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) {
-        await this.stop(message);
-        return false;
-      }
+      if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) return false;
 
       // ; Else, generate and add an AMQ track
       if (await this.addAMQ(message)) {
