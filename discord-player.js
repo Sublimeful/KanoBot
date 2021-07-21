@@ -274,7 +274,7 @@ class Player extends EventEmitter {
       }
       case 'youtube_playlist': {
         try {
-          let playlist = await ytpl(query);
+          let playlist = await ytpl(query, { limit: Infinity });
 
           const tracks = [];
 
