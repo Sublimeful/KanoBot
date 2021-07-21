@@ -2,7 +2,7 @@ const fetch = require("node-fetch")
 const ffmpeg = require('fluent-ffmpeg');
 const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
-const ytdl = require("ytdl-core");
+const ytdl = require("ytdl-core-discord");
 const yts = require("yt-search");
 const spotify = require("spotify-url-info");
 const scdl = require('soundcloud-downloader').default;
@@ -742,9 +742,11 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     let stream;
+    let f = false;
 
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
+      stream = await ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
+      f = true;
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
@@ -754,7 +756,7 @@ class Player extends EventEmitter {
     if(seek < 0) seek = 0;
 
     server.connection
-      .play(stream, { bitrate: 'auto', seek: seek })
+      .play(stream, { type: f ? 'opus' : '', bitrate: 'auto', seek: seek })
       .on("finish", () => {
         // To prevent double adding (Dont skip or jump if current song is guessmode song)
         if(server.isPlaying) {
@@ -863,15 +865,17 @@ class Player extends EventEmitter {
     ms = ms < 0 ? 0 : (ms > track.duration * 1000 ? track.duration * 1000 : ms);
 
     let stream;
+    let f = false;
 
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
+      stream = await ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
+      f = true;
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
 
     server.connection
-      .play(stream, { bitrate: 'auto', seek: ms/1000 })
+      .play(stream, { type: f ? 'opus' : '', bitrate: 'auto', seek: ms/1000 })
       .on("finish", () => {
         if(server.loop === "track")
           return this.jump(message, server.currentTrack);
