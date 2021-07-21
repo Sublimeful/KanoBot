@@ -756,10 +756,17 @@ class Player extends EventEmitter {
     server.connection
       .play(stream, { bitrate: 'auto', seek: seek })
       .on("finish", () => {
+        // To prevent double adding (Dont skip or jump if current song is guessmode song)
+        if(server.isPlaying) {
+          const ct = server.queue[server.currentTrack];
+          if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) return;
+        }
+
         if(server.loop === "track")
           return this.jump(message, server.currentTrack);
         if(server.currentTrack === server.queue.length - 1 && server.loop === "queue")
           return this.jump(message, 0);
+
         this.skip(message);
       })
       .on("error", err => {
@@ -816,7 +823,8 @@ class Player extends EventEmitter {
 
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
-    if(server.queue[server.currentTrack].amq && server.queue[server.currentTrack].amq.isGuessable) 
+    if(server.queue[server.currentTrack].amq && 
+      (server.queue[server.currentTrack].amq.isGuessable || server.queue[server.currentTrack].amq.guessStarted))
       return this.emit("error", message, "guessMode");
 
     server.connection.dispatcher.pause();
@@ -829,7 +837,8 @@ class Player extends EventEmitter {
 
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
-    if(server.queue[server.currentTrack].amq && server.queue[server.currentTrack].amq.isGuessable) 
+    if(server.queue[server.currentTrack].amq && 
+      (server.queue[server.currentTrack].amq.isGuessable || server.queue[server.currentTrack].amq.guessStarted))
       return this.emit("error", message, "guessMode");
 
     if(server.isPlaying) {
@@ -845,7 +854,8 @@ class Player extends EventEmitter {
     // Error handling
     if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
-    if(server.queue[server.currentTrack].amq && server.queue[server.currentTrack].amq.isGuessable) 
+    if(server.queue[server.currentTrack].amq && 
+      (server.queue[server.currentTrack].amq.isGuessable || server.queue[server.currentTrack].amq.guessStarted))
       return this.emit("error", message, "guessMode");
 
     const track = server.queue[server.currentTrack];
