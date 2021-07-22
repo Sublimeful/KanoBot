@@ -2,7 +2,7 @@ const fetch = require("node-fetch")
 const ffmpeg = require('fluent-ffmpeg');
 const ffprobe = require('ffprobe-static');
 const EventEmitter = require('events');
-const ytdl = require("ytdl-core-discord");
+const ytdl = require("ytdl-core");
 const yts = require("yt-search");
 const ytpl = require('ytpl');
 const spotify = require("spotify-url-info");
@@ -131,10 +131,12 @@ class Player extends EventEmitter {
       guessedCorrectly: new Set(),
       guessTimeout: null,
       autoplayTimeout: null,
+      type: server.amq.guessMode ? "guess" : "normal",
       revealed: false,
       reveal: function() {
-        this.revealed = true;
-        this.isGuessable = false;
+        // Just changes the title of the track and revealed state
+        track.amq.revealed = true;
+        track.amq.isGuessable = false;
         track.title = `"${songName}" - ${animeTitle} ${songType}`;
       }
     };
@@ -679,9 +681,10 @@ class Player extends EventEmitter {
 
     // If anime music quiz mode is on, then 
     if(server.amq.isEnabled) {
-      // Don't add an AMQ track if currently playing a guessmode AMQ track
+      // Clear the timeout so it doesn't add two things at once
       const ct = server.queue[server.currentTrack];
-      if(ct && ct.amq && (ct.amq.isGuessable || ct.amq.guessStarted)) return false;
+      if(ct && ct.amq && ct.amq.type == "guess") 
+        clearTimeout(ct.amq.autoplayTimeout);
 
       // ; Else, generate and add an AMQ track
       if (await this.addAMQ(message)) {
@@ -691,6 +694,7 @@ class Player extends EventEmitter {
       return true;
     }
 
+    server.currentTrack = server.queue.length;
     await this.stop(message);
     return false;
   }
@@ -751,29 +755,44 @@ class Player extends EventEmitter {
 
     const server = this.getContract(message);
 
+    // Error handling
+    if(!server.connection) return;
+
+    // Set seek sample for guessmode (+5 seconds of leeway)
+    let seek = 0;
+    if(track.amq && track.amq.isGuessable) {
+      const lw = server.amq.guessTime + 5;
+      const range = track.duration - lw;
+
+      seek = Math.floor(Math.random() * range);
+
+      if(seek < 0) seek = 0;
+    }
+
+    // guessTime and autoplayTimeout in SECONDS
+    let guessTime;
+    let autoplayTime;
+
+    // 5 seconds of leeway
+    guessTime = Math.min(track.duration - 5, server.amq.guessTime);
+    autoplayTime = guessTime + 10;
+
+    // Get the stream
     let stream;
-    let fromYTDL = false;
 
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = await ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
-      fromYTDL = true;
+      stream = ytdl(track.backupLink ?? track.url, 
+                   {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
 
-    // Set seek sample for guessmode (5 seconds of leeway)
-    let seek = (track.amq && track.amq.isGuessable) ? Math.floor(Math.random() * (track.duration - server.amq.guessTime - 5)) : 0;
-    if(seek < 0) seek = 0;
-
-    // Error handling
-    if(!server.connection) return;
-
     server.connection
-      .play(stream, { type: fromYTDL ? 'opus' : '', bitrate: 'auto', seek: seek })
+      .play(stream, { bitrate: 'auto', seek: seek }) // IN SECONDS
       .on("finish", () => {
         if(server.loop === "track")
           return this.jump(message, server.currentTrack);
-        if(server.currentTrack === server.queue.length - 1 && server.loop === "queue")
+        if(server.loop === "queue" && server.currentTrack === server.queue.length - 1)
           return this.jump(message, 0);
 
         this.skip(message);
@@ -792,28 +811,34 @@ class Player extends EventEmitter {
         // Clear the previous setTimeout so it doesn't overlap
         clearTimeout(track.amq.guessTimeout);
 
-        track.amq.guessTimeout = setTimeout(async () => {
+        track.amq.guessTimeout = setTimeout(() => {
           // Error handling
-          if(!server.isPlaying || !track.amq.isGuessable || server.queue[server.currentTrack] !== track) return;
+          if(!server.isPlaying || server.queue[server.currentTrack] !== track) return;
 
           track.amq.reveal();
           this.emit("notification", message, "amqGuessEnded", track);
 
-          // Clear the previous setTimeout so it doesn't overlap
-          clearTimeout(track.amq.autoplayTimeout)
+        }, guessTime * 1000);
 
-          // Autoplay a new AMQ track after 10 seconds
-          track.amq.autoplayTimeout = setTimeout(async () => {
-            // Error handling
-            if(!server.isPlaying || !server.amq.isEnabled || !server.amq.guessMode || server.queue[server.currentTrack + 1]) return;
+        // Clear the previous setTimeout so it doesn't overlap
+        clearTimeout(track.amq.autoplayTimeout)
 
-            // Generate and add an AMQ track
-            if (await this.addAMQ(message)) {
-              // ; then play that added track
-              await this.jump(message, server.queue.length - 1);
-            }
-          }, 10000)
-        }, Math.min((track.duration - 5) * 1000, server.amq.guessTime * 1000));
+        // Autoplay a new AMQ track after 10 seconds
+        track.amq.autoplayTimeout = setTimeout(async () => {
+          // Error handling
+          if(!server.isPlaying || server.queue[server.currentTrack] !== track) return;
+          if(!server.amq.isEnabled || !server.amq.guessMode) return;
+          if(server.queue[server.currentTrack + 1]) return;
+
+          // Destroy the dispatcher as to not trigger "finish" event
+          server.connection.dispatcher.destroy();
+
+          // Generate and add an AMQ track
+          if (await this.addAMQ(message)) {
+            // ; then play that added track
+            await this.jump(message, server.queue.length - 1);
+          }
+        }, autoplayTime * 1000)
       })
 
     // Set the seek for sample (ms)
@@ -833,8 +858,8 @@ class Player extends EventEmitter {
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
     if(server.queue[server.currentTrack].amq && 
-      (server.queue[server.currentTrack].amq.isGuessable || server.queue[server.currentTrack].amq.guessStarted))
-      return this.emit("error", message, "guessMode");
+       server.queue[server.currentTrack].amq.type == "guess")
+      return this.emit("error", message, "isInGuessMode");
 
     server.connection.dispatcher.pause();
     this.emit("notification", message, "pause");
@@ -847,8 +872,8 @@ class Player extends EventEmitter {
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
     if(server.queue[server.currentTrack].amq && 
-      (server.queue[server.currentTrack].amq.isGuessable || server.queue[server.currentTrack].amq.guessStarted))
-      return this.emit("error", message, "guessMode");
+       server.queue[server.currentTrack].amq.type == "guess")
+      return this.emit("error", message, "isInGuessMode");
 
     if(server.isPlaying) {
       server.connection.dispatcher.resume();
@@ -864,32 +889,35 @@ class Player extends EventEmitter {
     if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
     if(server.queue[server.currentTrack].amq && 
-      (server.queue[server.currentTrack].amq.isGuessable || server.queue[server.currentTrack].amq.guessStarted))
-      return this.emit("error", message, "guessMode");
-
-    const track = server.queue[server.currentTrack];
-
-    ms = ms < 0 ? 0 : (ms > track.duration * 1000 ? track.duration * 1000 : ms);
-
-    let stream;
-    let fromYTDL = false;
-
-    if(track.source === "youtube" || track.source === "spotify") {
-      stream = await ytdl(track.backupLink ?? track.url, {filter: 'audioonly', dlChunkSize: 0});
-      fromYTDL = true;
-    } else {
-      stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
-    }
-
-    // Error handling
+       server.queue[server.currentTrack].amq.type == "guess")
+      return this.emit("error", message, "isInGuessMode");
     if(!server.connection) return;
 
+    // Thresholds and stuff
+    const ct = server.queue[server.currentTrack];
+
+    if(ms < 0) ms = 0;
+    if(ms > ct.duration * 1000) ms = ct.duration * 1000;
+
+    // CONVERT TO SECONDS
+    const seek = ms/1000;
+
+    // Get the stream
+    let stream;
+
+    if(ct.source === "youtube" || ct.source === "spotify") {
+      stream = ytdl(ct.backupLink ?? ct.url,
+                   {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+    } else {
+      stream = ct.source === "soundcloud" ? await scdl.download(ct.url) : ct.url;
+    }
+
     server.connection
-      .play(stream, { type: fromYTDL ? 'opus' : '', bitrate: 'auto', seek: ms/1000 })
+      .play(stream, { bitrate: 'auto', seek: seek }) // IN SECONDS
       .on("finish", () => {
         if(server.loop === "track")
           return this.jump(message, server.currentTrack);
-        if(server.currentTrack === server.queue.length - 1 && server.loop === "queue")
+        if(server.loop === "queue" && server.currentTrack === server.queue.length - 1)
           return this.jump(message, 0);
 
         this.skip(message);
@@ -917,9 +945,12 @@ class Player extends EventEmitter {
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
 
     const st = server.connection.dispatcher.streamTime;
-    const s = server.connection.dispatcher.seek;
 
-    await this.seekTo(message, st + ms + (s ? s : 0));
+    // If s is undefined, then set s to 0 instead
+    let s = server.connection.dispatcher.seek;
+    if(!s) s = 0;
+
+    await this.seekTo(message, s + st + ms);
   }
 
   /* Set volume (1.0 is 100%, 0.5 is 50%, etc.) */

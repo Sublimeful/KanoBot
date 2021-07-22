@@ -166,11 +166,14 @@ player.on("notification", (message, type, data) => {
         m2 = getSimpleEmbed(`**----- Correct Players -----**\n${codify(val)}`);
       }
 
-      const m3 = getReveal(data, Math.floor(player.getTimeStamp(message)/1000));
-
       message.channel.send(m1);
       message.channel.send(m2);
+
+      // Don't reveal again if track has been revealed
+      if(data.amq.revealed) return;
+      const m3 = getReveal(data, Math.floor(player.getTimeStamp(message)/1000));
       message.channel.send(m3);
+
       break;
     }
     case "guessTime": {
@@ -279,7 +282,7 @@ player.on("error", (message, reason, data) => {
       message.channel.send(m1);
       break;
     }
-    case "guessMode": {
+    case "isInGuessMode": {
       const m1 = getSimpleEmbed(`⚠️ Cannot perform this action while in guess mode!`);
       message.channel.send(m1);
       break;
