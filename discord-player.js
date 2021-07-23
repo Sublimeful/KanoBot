@@ -134,7 +134,6 @@ class Player extends EventEmitter {
       type: server.amq.guessMode ? "guess" : "normal",
       revealed: false,
       reveal: function() {
-        // Just changes the title of the track and revealed state
         track.amq.revealed = true;
         track.amq.isGuessable = false;
         track.title = `"${songName}" - ${animeTitle} ${songType}`;
@@ -819,7 +818,7 @@ class Player extends EventEmitter {
           // Error handling
           if(!server.isPlaying || server.queue[server.currentTrack] !== track) return;
 
-          track.amq.reveal();
+          // Emit a notification to reveal the track
           this.emit("notification", message, "amqGuessEnded", track);
 
         }, guessTime * 1000);
