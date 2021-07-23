@@ -200,7 +200,11 @@ class Player extends EventEmitter {
           }
 
           return tracks;
-        } catch(err) {return null;}
+        } catch(err) {
+          console.error(err);
+
+          return null;
+        }
       }
       case 'spotify_album':
       case 'spotify_playlist': {
@@ -234,7 +238,11 @@ class Player extends EventEmitter {
           }))
 
           return tracks;
-        } catch(err) {return null;}
+        } catch(err) {
+          console.error(err);
+
+          return null;
+        }
       }
       case 'soundcloud_track': {
         try {
@@ -247,7 +255,11 @@ class Player extends EventEmitter {
           track.source = 'soundcloud';
 
           return track;
-        } catch(err) {return null;}
+        } catch(err) {
+          console.error(err);
+
+          return null;
+        }
       }
       case 'spotify_song': {
         try {
@@ -271,7 +283,11 @@ class Player extends EventEmitter {
           }
 
           return track;
-        } catch(err) {return null;}
+        } catch(err) {
+          console.error(err);
+
+          return null;
+        }
       }
       case 'youtube_playlist': {
         try {
@@ -297,7 +313,11 @@ class Player extends EventEmitter {
             // Else, set playlist to the next page
             playlist = ytpl.continueReq(playlist.continuation);
           }
-        } catch(err) {return null;}
+        } catch(err) {
+          console.error(err);
+
+          return null;
+        }
       }
       case 'youtube_video': {
         try {
@@ -311,7 +331,11 @@ class Player extends EventEmitter {
           track.source = 'youtube'
 
           return track;
-        } catch(err) {return null;}
+        } catch(err) {
+          console.error(err);
+
+          return null;
+        }
       }
       case 'media_link': {
         return await new Promise((resolve, _) => {

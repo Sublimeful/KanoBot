@@ -559,6 +559,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 //<-- event: onceready
 client.once("ready", () => {
   console.log("Ready!");
+  client.user.setActivity('~play', { type: 'LISTENING' });
 })
 //-->
 
