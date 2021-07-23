@@ -681,6 +681,10 @@ class Player extends EventEmitter {
 
     // If anime music quiz mode is on, then 
     if(server.amq.isEnabled) {
+      // Destroy the dispatcher so it doesn't add two things at once
+      if(server.connection && server.connection.dispatcher)
+        server.connection.dispatcher.destroy();
+
       // Clear the timeout so it doesn't add two things at once
       const ct = server.queue[server.currentTrack];
       if(ct && ct.amq && ct.amq.type == "guess") 
