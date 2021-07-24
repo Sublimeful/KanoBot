@@ -10,15 +10,11 @@ function getTrack(track, title, timestamp) {
   // Timestamp is in seconds
   let value;
   if(track.amq && track.amq.revealed) {
-    const rS = track.amq.releaseSeason;
-    const rY = track.amq.releaseYear;
-
-    value =  `[${track.title}](${track.url}) `;
-    value += `[${track.requestor}]`;
-    value += `\n`;
-    value += `${rS[0].toUpperCase() + rS.substr(1)} ${rY}`;
-    value += `\n`;
-    value += `[MyAnimeList](https://myanimelist.net/anime/${track.amq.malID})`;
+    const title = `[${track.title}](${track.url})`;
+    const requestor = `[${track.requestor}]`;
+    const releaseDate = track.amq.releaseDate;
+    const link = `[MyAnimeList](https://myanimelist.net/anime/${track.amq.malID})`;
+    value = [title, requestor, releaseDate, link].join('\n');
   } else if(track.amq) {
     value = `${track.title} [${track.requestor}]`;
   } else {

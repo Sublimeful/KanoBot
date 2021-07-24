@@ -94,7 +94,7 @@ module.exports = {
   },
   'amq generate': {
     description: 'Generates an AMQ song',
-    format: 'amq generate'
+    format: 'amq generate, amq generate [MyAnimeList Username]'
   },
   'mal add': {
     description: 'Adds a MAL account',

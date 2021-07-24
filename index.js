@@ -158,7 +158,7 @@ player.on("notification", (message, type, data) => {
         let val = "";
 
         data.amq.guessedCorrectly.forEach(player => {
-          val += `${player.username}, `;
+          val += `${player.username} (${(player.accuracy * 100).toFixed(1)}%), `;
         })
 
         val = val.substr(0, val.length - 2);
@@ -365,9 +365,10 @@ client.on("message", async message => {
       }
       case "jump": {
         const a1 =
-              args[0] === "first" || args[0] === "f" ? 0                            :
-              args[0] === "last"  || args[0] === "l" ? serverQueue.length - 1       :
-                                                     parseInt(args[0]) - 1;
+              args[0] === "current" || args[0] === "c" ? serverCurrentTrack           :
+              args[0] === "first"   || args[0] === "f" ? 0                            :
+              args[0] === "last"    || args[0] === "l" ? serverQueue.length - 1       :
+                                                       parseInt(args[0]) - 1;
         await player.jump(message, a1);
         break;
       }
@@ -515,7 +516,7 @@ client.on("message", async message => {
             break;
           }
           case "generate": {
-            await player.addAMQ(message);
+            await player.addAMQ(message, args.join(" "));
             break;
           }
           default: {
@@ -559,7 +560,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 //<-- event: onceready
 client.once("ready", () => {
   console.log("Ready!");
-  client.user.setActivity('~play', { type: 'LISTENING' });
+  client.user.setActivity(`${prefix}play`, { type: 'LISTENING' });
 })
 //-->
 

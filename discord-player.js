@@ -96,35 +96,68 @@ class Player extends EventEmitter {
   async #generateAMQ(message, username) {
     const server = this.getContract(message);
 
-    this.emit("notification", message, "amqChoosingFrom", username);
+    this.emit("notification", message, "amqChoosingFrom", username?username:"🎲 RANDOM 🎲");
 
     const anime = await getAnimeInfo(username);
 
-    if(anime === null) return null;
+    if(!anime) {
+      console.error(`Could not get animeInfo for username ${username?username:"🎲 RANDOM 🎲"}`);
+      return null;
+    }
 
-    const theme = anime.themes[Math.floor(anime.themes.length * Math.random())];
+    // Concat opening and ending themes
+    const openings = anime.opening_themes.map(theme => {
+      if(anime.opening_themes.length > 1) 
+        return {themeType: `OP ${theme.substr(0, theme.indexOf(":"))}`, 
+                themeName: theme.substr(theme.indexOf(":") + 2)};
+
+      return {themeType: `OP #1`, themeName: theme};
+    })
+    const endings = anime.ending_themes.map(theme => {
+      if(anime.ending_themes.length > 1) 
+        return {themeType: `ED ${theme.substr(0, theme.indexOf(":"))}`, 
+                themeName: theme.substr(theme.indexOf(":") + 2)};
+
+      return {themeType: `ED #1`, themeName: theme};
+    })
+
+    const themes = openings.concat(endings);
+    const theme = themes[Math.floor(themes.length * Math.random())];
+
+    if(!theme) {
+      console.error(`No theme for anime ${anime.mal_id}`);
+      return null;
+    }
+
     const songType = theme.themeType;
     const songName = theme.themeName;
 
-    const releaseSeason = anime.season;
-    const releaseYear = anime.year;
-    const animeTitle = anime.name;
-    const malID = anime.malID;
+    const releaseDate = anime.premiered ?? anime.aired.string;
+    const animeTitle = anime.title;
+    const malID = anime.mal_id;
 
-    const track = 
-      await this.#generateTrack(message, `${songName} - ${animeTitle} ${songType}`);
 
-    if(!track) return null;
+    // Get the real song title and search for it
+    console.log(`Song Name: ${songName}`);
+    const songTitle = songName.match(/^(.+)( by )(.+)$/)[1];
+    const searchQuery =  `${songTitle} - ${animeTitle} ${songType}`.replace(/"/g, '');
+    console.log(`Searching for: ${searchQuery}`);
+    const track = await this.#generateTrack(message, searchQuery);
+
+
+    if(!track) {
+      console.error(`Could not generate track for search term ${searchQuery}`);
+      return null;
+    }
 
     track.requestor = username ? `**${username}**` : "🎲 **RANDOM** 🎲";
     track.title = server.amq.guessMode ? `[AMQ Guess] ${songType}` : `[AMQ Normal] ${songType}`;
     track.amq = {
       songType: songType,
       songName: songName,
-      releaseSeason: releaseSeason,
-      releaseYear: releaseYear,
+      releaseDate: releaseDate,
       animeTitle: animeTitle,
-      guessTitles: new Set([animeTitle.toLowerCase()]),
+      guessTitles: new Set(),
       malID: malID,
       isGuessable: server.amq.guessMode,
       guessStarted: false,
@@ -136,30 +169,28 @@ class Player extends EventEmitter {
       reveal: function() {
         track.amq.revealed = true;
         track.amq.isGuessable = false;
-        track.title = `"${songName}" - ${animeTitle} ${songType}`;
+        track.title = `${songName} - ${animeTitle} ${songType}`;
       }
     };
 
     if(track.amq.isGuessable) {
       // Get alternate titles and add it to guessTitles
-      const res = await fetch(`https://api.jikan.moe/v3/anime/${malID}`);
 
-      // If something failed with the api then return null
-      if(res.ok) {
-        const data = await res.json();
-
-        if(data.title_english) {
-          track.amq.guessTitles.add(data.title_english.toLowerCase());
-        }
-
-        if(data.title_japanese) {
-          track.amq.guessTitles.add(data.title_japanese.toLowerCase());
-        }
-
-        data.title_synonyms.forEach(title => {
-          track.amq.guessTitles.add(title.toLowerCase());
-        })
+      if(anime.title) {
+        track.amq.guessTitles.add(anime.title.toLowerCase());
       }
+
+      if(anime.title_english) {
+        track.amq.guessTitles.add(anime.title_english.toLowerCase());
+      }
+
+      if(anime.title_japanese) {
+        track.amq.guessTitles.add(anime.title_japanese.toLowerCase());
+      }
+
+      anime.title_synonyms.forEach(title => {
+        track.amq.guessTitles.add(title.toLowerCase());
+      })
     }
 
     return track;
@@ -602,17 +633,21 @@ class Player extends EventEmitter {
   }
 
   /* Generate an AMQ track and add it to the queue */
-  async addAMQ(message) {
+  async addAMQ(message, username = null) {
     const server = this.getContract(message);
 
-    // Get random username
-    const usernames = server.amq.mal.usernames;
+    if(!username) {
+      // Get random username
+      const usernames = server.amq.mal.usernames;
 
-    let username = null;
-    let rand = Math.random();
-
-    if(rand < server.amq.mal.chance && usernames.length !== 0) {
-      username = usernames[Math.floor(usernames.length * Math.random())];
+      let rand = Math.random();
+      if(rand < server.amq.mal.chance && usernames.length !== 0) {
+        username = usernames[Math.floor(usernames.length * Math.random())];
+      }
+    } else {
+      // Error handling
+      if(!server.amq.mal.usernames.includes(username))
+        return this.emit("error", message, "malNotInList", username);
     }
 
     // Generate an AMQ track
@@ -676,10 +711,10 @@ class Player extends EventEmitter {
     const ct = server.queue[server.currentTrack]
 
     for(const title of ct.amq.guessTitles) {
-      console.log(`Guess: ${guess.toLowerCase().padEnd(guess.length + 3)}Title: ${title.padEnd([...ct.amq.guessTitles].reduce((p, c) => p.length > c.length ? p : c).length + 3)}Similar: ${stringSimilarity(guess.toLowerCase(), title)}`);
+      const accuracy = stringSimilarity(guess.toLowerCase(), title);
 
-      if(stringSimilarity(guess.toLowerCase(), title) >= 0.4) {
-        ct.amq.guessedCorrectly.add(message.author);
+      if(accuracy >= 0.4) {
+        ct.amq.guessedCorrectly.add({username: message.author.username, accuracy: accuracy});
         break;
       }
     }

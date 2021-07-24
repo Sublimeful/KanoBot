@@ -50,13 +50,28 @@ async function getAnimeInfo(malUsername) {
     // If something failed with the api, then return null
     if(!res.ok) return null;
 
-    return await res.json();
+    // Return info pertaining to the anime
+    return await (async () => {
+      const r = await fetch(`https://api.jikan.moe/v3/anime/${(await res.json()).malID}`);
+
+      // If something failed with the api
+      // ; Or if the api does not recognize the mal_id, then return null
+      if(!r.ok) {
+        console.error(`Could not get animeInfo for anime ${(await res.json()).malID}`);
+        return null;
+      }
+
+      // The json returned is the anime info
+      return (await r.json());
+    })();
   }
 
+
+
   const page = await (async () => {
-    const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}`);
-    const json = await res.json();
-    const totalEntries = json.anime_stats.total_entries;
+    const r = await fetch(`https://api.jikan.moe/v3/user/${malUsername}`);
+    const j = await r.json();
+    const totalEntries = j.anime_stats.total_entries;
     const pages = Math.ceil(totalEntries / 300);
     
     return (Math.floor(Math.random() * pages) + 1);
@@ -65,31 +80,50 @@ async function getAnimeInfo(malUsername) {
   const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}/animelist/all/${page}`);
 
   // If something failed with the api or username is invalid, then return null
-  if(!res.ok) return null;
+  if(!res.ok) {
+    console.error(`Could not get a result for user ${malUsername} on page ${page}`);
+    return null;
+  }
 
   const json = await res.json();
 
   const entries = json.anime;
 
   const filter = entries.filter(entry => {
-    const watchStatus = parseInt(entry.watching_status);
+    // Keep the entry no matter what
+    return true;
+
+    // const watchStatus = parseInt(entry.watching_status);
 
     // Keep the entry if the watchStatus is completed or watching
-    return (watchStatus === 1 || watchStatus === 2);
+    // return (watchStatus === 1 || watchStatus === 2);
   })
 
-  if(filter.length === 0) return null;
+  // Return null if there is no anime in their completed/watching list
+  if(filter.length === 0) {
+    console.error(`No anime with watchStatus completed or watching for user ${malUsername} on page ${page}`);
+    return null;
+  }
 
+
+
+  // Get random entry from their filtered list
   const entry = filter[Math.floor(filter.length * Math.random())];
 
-  const r = await fetch(`https://themes.moe/api/themes/${entry.mal_id}`);
+  // Return info pertaining to the anime
+  return await (async () => {
+    const r = await fetch(`https://api.jikan.moe/v3/anime/${entry.mal_id}`);
 
-  // If something failed with the api
-  // ; Or if the api does not recognize the mal_id, then return null
-  if(!r.ok) return null;
+    // If something failed with the api
+    // ; Or if the api does not recognize the mal_id, then return null
+    if(!r.ok) {
+      console.error(`Could not fetch animeInfo for anime ${entry.mal_id}`);
+      return null;
+    }
 
-  // The object is returned in a single-sized list for some reason
-  return (await r.json())[0];
+    // The json returned is the anime info
+    return (await r.json());
+  })();
 }
 
 function stringSimilarity(s1, s2) {
