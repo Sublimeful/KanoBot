@@ -835,16 +835,15 @@ class Player extends EventEmitter {
     guessTime = Math.min(track.duration - 5, server.amq.guessTime);
     autoplayTime = guessTime + 10;
 
-    // Get the stream
-    let stream;
-
-
     // Modify spotify
     let backupUrl = null;
     if(track.source === "spotify") {
       const search = await yts(track.title);
       if(search.videos.length !== 0) backupUrl = search.videos[0].url;
     }
+
+    // Get the stream
+    let stream;
 
     if(track.source === "youtube" || track.source === "spotify") {
       stream = ytdl(backupUrl ?? track.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
