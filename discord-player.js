@@ -205,6 +205,7 @@ class Player extends EventEmitter {
       thumbnail: null,
       requestor: message.author.toString(),
       source: null,
+      backupUrl: null
     }
 
     const queryType = getQueryType(query);
@@ -252,7 +253,8 @@ class Player extends EventEmitter {
               duration: Math.floor(spotifyData.duration_ms/1000),
               thumbnail: null,
               requestor: message.author.toString(),
-              source: 'spotify'
+              source: 'spotify',
+              backupUrl: null
             }
 
 
@@ -836,17 +838,16 @@ class Player extends EventEmitter {
     autoplayTime = guessTime + 10;
 
     // Modify spotify
-    let backupUrl = null;
-    if(track.source === "spotify") {
+    if(track.source === "spotify" && !track.backupUrl) {
       const search = await yts(track.title);
-      if(search.videos.length !== 0) backupUrl = search.videos[0].url;
+      if(search.videos.length !== 0) track.backupUrl = search.videos[0].url;
     }
 
     // Get the stream
     let stream;
 
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = ytdl(backupUrl ?? track.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+      stream = ytdl(track.backupUrl ?? track.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
@@ -970,7 +971,7 @@ class Player extends EventEmitter {
     let stream;
 
     if(ct.source === "youtube" || ct.source === "spotify") {
-      stream = ytdl(ct.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+      stream = ytdl(ct.backupUrl ?? ct.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = ct.source === "soundcloud" ? await scdl.download(ct.url) : ct.url;
     }
