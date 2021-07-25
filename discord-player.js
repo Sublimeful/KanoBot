@@ -840,7 +840,10 @@ class Player extends EventEmitter {
     // Modify spotify
     if(track.source === "spotify" && !track.backupUrl) {
       const search = await yts(track.title);
-      if(search.videos.length !== 0) track.backupUrl = search.videos[0].url;
+      if(search.videos.length !== 0) {
+        track.backupUrl = search.videos[0].url;
+        track.duration = search.videos[0].seconds;
+      }
     }
 
     // Get the stream
