@@ -205,7 +205,6 @@ class Player extends EventEmitter {
       thumbnail: null,
       requestor: message.author.toString(),
       source: null,
-      backupLink: null,
     }
 
     const queryType = getQueryType(query);
@@ -243,29 +242,31 @@ class Player extends EventEmitter {
           const playlist = await spotify.getData(query);
 
           const tracks = await Promise.all(playlist.tracks.items.map(async (spotifyData) => {
-            const t = {
-              url: spotifyData.external_urls?.spotify ?? query,
-              title: spotifyData.name,
+            // If playlist type is 'playlist', then data will be contained in .track prop
+            if (playlist.type === 'playlist')
+              spotifyData = spotifyData.track;
+
+            const track = {
+              url: spotifyData.external_urls?.spotify,
+              title: `${spotifyData.name} - ${spotifyData.artists[0]?.name??'Unknown Artist'}`,
               duration: Math.floor(spotifyData.duration_ms/1000),
               thumbnail: null,
               requestor: message.author.toString(),
-              source: 'spotify',
-              backupLink: null
+              source: 'spotify'
             }
 
-            // Search for the song on Youtube, set first result as backup link
-            const search = await yts(`${t.title}${' - ' + spotifyData.artists[0]?.name ?? 'Unknown Artist'}`);
 
-            if(search.videos.length !== 0) {
-              const video = search.videos[0];
 
-              t.backupLink = video.url;
+            // Setting thumbnail
+            track.thumbnail = (playlist.type === 'playlist')
+                              ? spotifyData.album?.images[0]?.url 
+                              : playlist.images[0]?.url
+            if(!track.thumbnail) 
+              track.thumbnail = 'https://www.scdn.co/i/_global/twitter_card-default.jpg';
 
-              // Get our thumbnail from yts, because spotify will not give us one
-              t.thumbnail = video.thumbnail;
-            }
 
-            return t;
+
+            return track;
           }))
 
           return tracks;
@@ -296,22 +297,17 @@ class Player extends EventEmitter {
         try {
           const spotifyData = await spotify.getData(query);
 
-          track.url = spotifyData.external_urls?.spotify ?? query;
-          track.title = spotifyData.name;
+          track.url = spotifyData.external_urls?.spotify;
+          track.title = `${spotifyData.name} - ${spotifyData.artists[0]?.name??'Unknown Artist'}`;
           track.duration = Math.floor(spotifyData.duration_ms/1000);
           track.source = 'spotify';
 
-          // Search for the song on Youtube, set first result as backup link
-          const search = await yts(`${track.title}${' - ' + spotifyData.artists[0]?.name ?? 'Unknown Artist'}`);
 
-          if(search.videos.length !== 0) {
-            const video = search.videos[0];
 
-            track.backupLink = video.url;
+          // Setting thumbnail
+          track.thumbnail = spotifyData.album?.images[0]?.url ?? 'https://www.scdn.co/i/_global/twitter_card-default.jpg';
 
-            // Get our thumbnail from yts, because spotify will not give us one
-            track.thumbnail = video.thumbnail;
-          }
+
 
           return track;
         } catch(err) {
@@ -842,9 +838,16 @@ class Player extends EventEmitter {
     // Get the stream
     let stream;
 
+
+    // Modify spotify
+    let backupUrl = null;
+    if(track.source === "spotify") {
+      const search = await yts(track.title);
+      if(search.videos.length !== 0) backupUrl = search.videos[0].url;
+    }
+
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = ytdl(track.backupLink ?? track.url, 
-                   {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+      stream = ytdl(backupUrl ?? track.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
@@ -968,8 +971,7 @@ class Player extends EventEmitter {
     let stream;
 
     if(ct.source === "youtube" || ct.source === "spotify") {
-      stream = ytdl(ct.backupLink ?? ct.url,
-                   {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+      stream = ytdl(ct.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = ct.source === "soundcloud" ? await scdl.download(ct.url) : ct.url;
     }
