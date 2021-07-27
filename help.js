@@ -73,7 +73,7 @@ module.exports = {
     format: 'loop [type]'
   },
   'autoplay': {
-    description: 'Toggles autoplay mode (Youtube videos)',
+    description: 'Toggles autoplay mode',
     format: 'autoplay',
     aliases: ['ap']
   },

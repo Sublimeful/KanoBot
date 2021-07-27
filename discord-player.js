@@ -780,7 +780,7 @@ class Player extends EventEmitter {
     if(server.amq.isEnabled) {
       // Clear the timeout so it doesn't add two things at once
       const ct = server.queue[server.currentTrack];
-      if(ct && ct.amq && ct.amq.type == "guess") 
+      if(ct && ct.amq && ct.amq.type === "guess") 
         clearTimeout(ct.amq.autoplayTimeout);
 
       // Destroy the dispatcher so it doesn't add two things at once
@@ -798,7 +798,7 @@ class Player extends EventEmitter {
     // If autoplay mode is on, then
     if(server.autoplay.isEnabled) {
       const ct = server.queue[server.currentTrack];
-      if(ct && ct.source == "youtube") {
+      if(ct && (ct.source === "youtube" || ct.source === "spotify")) {
         // Emit a notification for autoplay
         this.emit("notification", message, "addingAutoplay");
 
@@ -927,7 +927,7 @@ class Player extends EventEmitter {
     }
 
     // If source is youtube, then add the id to autoplay's played
-    if(track.source === "youtube")
+    if(track.source === "youtube" || track.source === "spotify")
       server.autoplay.played.add(track.id);
 
     // Get the stream
@@ -1010,7 +1010,7 @@ class Player extends EventEmitter {
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
     if(server.queue[server.currentTrack].amq && 
-       server.queue[server.currentTrack].amq.type == "guess")
+       server.queue[server.currentTrack].amq.type === "guess")
       return this.emit("error", message, "isInGuessMode");
 
     server.connection.dispatcher.pause();
@@ -1024,7 +1024,7 @@ class Player extends EventEmitter {
     // Error handling
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
     if(server.queue[server.currentTrack].amq && 
-       server.queue[server.currentTrack].amq.type == "guess")
+       server.queue[server.currentTrack].amq.type === "guess")
       return this.emit("error", message, "isInGuessMode");
 
     if(server.isPlaying) {
@@ -1041,7 +1041,7 @@ class Player extends EventEmitter {
     if(isNaN(ms)) return this.emit("error", message, "invalidArgs");
     if(!server.isPlaying) return this.emit("error", message, "isNotPlaying");
     if(server.queue[server.currentTrack].amq && 
-       server.queue[server.currentTrack].amq.type == "guess")
+       server.queue[server.currentTrack].amq.type === "guess")
       return this.emit("error", message, "isInGuessMode");
     if(!server.connection) return;
 
