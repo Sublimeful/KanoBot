@@ -798,7 +798,7 @@ class Player extends EventEmitter {
     // If autoplay mode is on, then
     if(server.autoplay.isEnabled) {
       const ct = server.queue[server.currentTrack];
-      if(ct && (ct.source === "youtube" || ct.source === "spotify")) {
+      if(ct && ct.source === "youtube") {
         // Emit a notification for autoplay
         this.emit("notification", message, "addingAutoplay");
 
@@ -927,7 +927,7 @@ class Player extends EventEmitter {
     }
 
     // If source is youtube, then add the id to autoplay's played
-    if(track.source === "youtube" || track.source === "spotify")
+    if(track.source === "youtube")
       server.autoplay.played.add(track.id);
 
     // Get the stream
