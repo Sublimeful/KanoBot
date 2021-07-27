@@ -144,10 +144,8 @@ class Player extends EventEmitter {
 
 
     // Get the real song title and search for it
-    console.log(`Song Name: ${songName}`);
     const songTitle = songName.match(/^(.+)( by )(.+)$/)[1];
     const searchQuery =  `${songTitle} - ${animeTitle} ${songType}`.replace(/"/g, '');
-    console.log(`Searching for: ${searchQuery}`);
     const track = await this.#generateTrack(message, searchQuery);
 
 
@@ -566,7 +564,7 @@ class Player extends EventEmitter {
 
       return true;
     } catch(err) {
-      console.log(err);
+      console.error(err);
 
       return false;
     }
@@ -953,7 +951,7 @@ class Player extends EventEmitter {
       })
       .on("error", err => {
         this.skip(message);
-        console.log(err);
+        console.error(err);
       })
       .on("start", () => {
         // If it is AMQ song and guess mode is on, then set guess timer
@@ -1077,7 +1075,7 @@ class Player extends EventEmitter {
       })
       .on("error", err => {
         this.skip(message);
-        console.log(err);
+        console.error(err);
       })
 
     // Set seek time
