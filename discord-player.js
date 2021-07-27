@@ -915,7 +915,7 @@ class Player extends EventEmitter {
 
     // 5 seconds of leeway
     amqGuessTime = Math.min(track.duration - 5, server.amq.guessTime);
-    amqGutoplayTime = amqGuessTime + 10;
+    amqAutoplayTime = amqGuessTime + 10;
 
     // Modify spotify
     if(track.source === "spotify" && !track.backupUrl) {
