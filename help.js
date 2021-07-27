@@ -72,6 +72,15 @@ module.exports = {
     description: 'Set the loop to \"off\", \"track\" or \"queue\"',
     format: 'loop [type]'
   },
+  'autoplay [toggle]': {
+    description: 'Toggles autoplay mode (For youtube videos)',
+    format: 'autoplay, autoplay toggle'
+  },
+  'autoplay volatility': {
+    description: 'Sets the randomness of autoplayed videos',
+    format: 'autoplay volatility [integer ≥0]',
+    aliases: ['autoplay rng']
+  },
   'reveal': {
     description: 'Reveals an AMQ song',
     format: 'reveal, reveal [position]'

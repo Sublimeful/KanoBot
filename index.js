@@ -561,6 +561,7 @@ client.on("message", async message => {
             await player.toggleAutoplay(message);
             break;
           }
+          case "rng":
           case "volatility": {
             await player.setAutoplayVolatility(message, parseInt(args[0]));
             break;
