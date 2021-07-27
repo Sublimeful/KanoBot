@@ -13,7 +13,7 @@ module.exports = {
     aliases: ['np']
   },
   'song': {
-    description: 'Returns the description of the song at \"position\"',
+    description: 'Returns the description of a song',
     format: 'song [position]'
   },
   'queue': {
@@ -72,14 +72,17 @@ module.exports = {
     description: 'Set the loop to \"off\", \"track\" or \"queue\"',
     format: 'loop [type]'
   },
-  'autoplay [toggle]': {
-    description: 'Toggles autoplay mode (For youtube videos)',
-    format: 'autoplay, autoplay toggle'
+  'autoplay': {
+    description: 'Toggles autoplay mode (Youtube videos)',
+    format: 'autoplay'
   },
-  'autoplay volatility': {
+  'autoplay rng': {
     description: 'Sets the randomness of autoplayed videos',
-    format: 'autoplay volatility [integer ≥0]',
-    aliases: ['autoplay rng']
+    format: 'autoplay rng [integer ≥0]'
+  },
+  'autoplay unique': {
+    description: 'Whether autoplay will play unique tracks',
+    format: 'autoplay unique'
   },
   'reveal': {
     description: 'Reveals an AMQ song',
@@ -97,9 +100,9 @@ module.exports = {
     description: 'Toggle guessing mode',
     format: 'guessmode'
   },
-  'amq [toggle]': {
+  'amq': {
     description: 'Toggles AMQ mode (Anime Music Quiz)',
-    format: 'amq, amq toggle'
+    format: 'amq'
   },
   'amq generate': {
     description: 'Generates an AMQ song',

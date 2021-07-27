@@ -73,7 +73,9 @@ class Player extends EventEmitter {
       loop: "off",
       autoplay: {
         isEnabled: false,
-        volatility: 0,
+        rng: 0,
+        unique: true,
+        played: new Set()
       },
       amq: {
         isEnabled: false,
@@ -642,19 +644,19 @@ class Player extends EventEmitter {
     this.emit("notification", message, "toggleAMQ", server.amq.isEnabled = !server.amq.isEnabled);
   }
 
-  /* Sets the volatility of autoplay */
-  async setAutoplayVolatility(message, volatility) {
+  /* Sets the rng of autoplay */
+  async setAutoplayRNG(message, rng) {
     const server = this.getContract(message);
 
-    // Error handling (show the autoplay volatility if volatility is not a number)
-    if(isNaN(volatility)) 
-      return this.emit("notification", message, "autoplayVolatility", server.autoplay.volatility);
+    // Error handling (show the autoplay rng if rng is not a number)
+    if(isNaN(rng)) 
+      return this.emit("notification", message, "autoplayRNG", server.autoplay.rng);
 
     // Limits and thresholds
-    if(volatility < 0) volatility = 0;
+    if(rng < 0) rng = 0;
 
-    server.autoplay.volatility = volatility;
-    this.emit("notification", message, "setAutoplayVolatility", server.autoplay.volatility);
+    server.autoplay.rng = rng;
+    this.emit("notification", message, "setAutoplayRNG", server.autoplay.rng);
   }
 
   /* Toggles autoplay mode */
@@ -662,6 +664,13 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
 
     this.emit("notification", message, "toggleAutoplay", server.autoplay.isEnabled = !server.autoplay.isEnabled);
+  }
+
+  /* Toggles autoplay UNIQUE mode */
+  async toggleAutoplayUnique(message) {
+    const server = this.getContract(message);
+
+    this.emit("notification", message, "toggleAutoplayUnique", server.autoplay.unique = !server.autoplay.unique);
   }
 
   /* Generate an AMQ track and add it to the queue */
@@ -802,9 +811,14 @@ class Player extends EventEmitter {
           ct.related = relatedVideos;
         }
 
+        // If autoplay unique is on, filter out all the non-unique videos
+        if(server.autoplay.unique) {
+          ct.related = ct.related.filter(v => !server.autoplay.played.has(v.id));
+        }
+
         if(ct.related.length !== 0) {
-          // Play related using volatility
-          const range = Math.min(ct.related.length, server.autoplay.volatility);
+          // Play related using rng
+          const range = Math.min(ct.related.length, server.autoplay.rng);
           const rand = Math.floor(Math.random() * range)
           const autoplayVideo = ct.related[rand];
           const videoUrl = `https://www.youtube.com/watch?v=${autoplayVideo.id}`;
@@ -814,7 +828,7 @@ class Player extends EventEmitter {
             // ; then play that added track
             await this.jump(message, server.queue.length - 1);
           }
-          return true;[]
+          return true;
         }
 
         // Emit an error if there is no related videos
@@ -913,6 +927,10 @@ class Player extends EventEmitter {
         track.duration = search.videos[0].seconds;
       }
     }
+
+    // If source is youtube, then add the id to autoplay's played
+    if(track.source === "youtube")
+      server.autoplay.played.add(track.id);
 
     // Get the stream
     let stream;

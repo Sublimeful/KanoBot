@@ -111,13 +111,19 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
-    case "autoplayVolatility": {
-      const m1 = getSimpleEmbed(`**----- Autoplay Volatility -----**\n${codify(data)}`);
+    case "toggleAutoplayUnique": {
+      const enabled = data ? "Enabled" : "Disabled";
+      const m1 = getSimpleEmbed(`**----- Autoplay Unique -----**\n${codify(enabled)}`);
       message.channel.send(m1);
       break;
     }
-    case "setAutoplayVolatility": {
-      const m1 = getSimpleEmbed(`**----- New Autoplay Volatility -----**\n${codify(data)}`);
+    case "autoplayRNG": {
+      const m1 = getSimpleEmbed(`**----- Autoplay RNG -----**\n${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "setAutoplayRNG": {
+      const m1 = getSimpleEmbed(`**----- New Autoplay RNG -----**\n${codify(data)}`);
       message.channel.send(m1);
       break;
     }
@@ -536,8 +542,7 @@ client.on("message", async message => {
       }
       case "amq": {
         switch(args.shift()?.toLowerCase()) {
-          case undefined:
-          case "toggle": {
+          case undefined: {
             await player.toggleAMQ(message);
             break;
           }
@@ -556,14 +561,16 @@ client.on("message", async message => {
       }
       case "autoplay": {
         switch(args.shift()?.toLowerCase()) {
-          case undefined:
-          case "toggle": {
+          case undefined: {
             await player.toggleAutoplay(message);
             break;
           }
-          case "rng":
-          case "volatility": {
-            await player.setAutoplayVolatility(message, parseInt(args[0]));
+          case "rng": {
+            await player.setAutoplayRNG(message, parseInt(args[0]));
+            break;
+          }
+          case "unique": {
+            await player.toggleAutoplayUnique(message);
             break;
           }
           default: {
