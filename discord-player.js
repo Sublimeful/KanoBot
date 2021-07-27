@@ -205,15 +205,15 @@ class Player extends EventEmitter {
   /* Generate a track Object from a query */
   async #generateTrack(message, query) {
     const track = {
+      requestor: message.author.toString(),
       title: "Unknown Title",
       url: query,
+      id: null,
       duration: null,
       thumbnail: null,
-      requestor: message.author.toString(),
       source: null,
       backupUrl: null,
-      related: null,
-      id: null
+      related: null
     }
 
     const queryType = getQueryType(query);
@@ -335,12 +335,12 @@ class Player extends EventEmitter {
           while(true) {
             for(const video of playlist.items) {
               tracks.push({
+                requestor: message.author.toString(),
                 title: video.title,
                 url: video.shortUrl,
+                id: video.id,
                 duration: video.durationSec,
                 thumbnail: video.bestThumbnail.url,
-                requestor: message.author.toString(),
-                id: video.id,
                 related: null,
                 source: 'youtube'
               })
@@ -365,10 +365,10 @@ class Player extends EventEmitter {
           const relatedVideos = videoInfo?.related_videos;
 
           track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
+          track.id = videoDetails.videoId;
           track.title = videoDetails.title;
           track.duration = parseInt(videoDetails.lengthSeconds);
           track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
-          track.id = videoDetails.videoId;
           track.related = relatedVideos;
           track.source = 'youtube'
 
@@ -407,9 +407,9 @@ class Player extends EventEmitter {
 
         track.title = video.title;
         track.url = video.url;
+        track.id = video.videoId;
         track.duration = video.seconds;
         track.thumbnail = video.thumbnail;
-        track.id = video.videoId;
         track.source = 'youtube';
 
         return track;
@@ -911,13 +911,13 @@ class Player extends EventEmitter {
       if(seek < 0) seek = 0;
     }
 
-    // guessTime and autoplayTimeout in SECONDS
-    let guessTime;
-    let autoplayTime;
+    // set the guess time and autoplay time for guess mode in SECONDS
+    let amqGuessTime;
+    let amqAutoplayTime;
 
     // 5 seconds of leeway
-    guessTime = Math.min(track.duration - 5, server.amq.guessTime);
-    autoplayTime = guessTime + 10;
+    amqGuessTime = Math.min(track.duration - 5, server.amq.guessTime);
+    amqGutoplayTime = amqGuessTime + 10;
 
     // Modify spotify
     if(track.source === "spotify" && !track.backupUrl) {
@@ -972,7 +972,7 @@ class Player extends EventEmitter {
           // Emit a notification to reveal the track
           this.emit("notification", message, "amqGuessEnded", track);
 
-        }, guessTime * 1000);
+        }, amqGuessTime * 1000);
 
         // Clear the previous setTimeout so it doesn't overlap
         clearTimeout(track.amq.autoplayTimeout)
@@ -992,7 +992,7 @@ class Player extends EventEmitter {
             // ; then play that added track
             await this.jump(message, server.queue.length - 1);
           }
-        }, autoplayTime * 1000)
+        }, amqAutoplayTime * 1000)
       })
 
     // Set the seek for sample (ms)
