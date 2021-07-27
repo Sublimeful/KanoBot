@@ -559,6 +559,7 @@ client.on("message", async message => {
         }
         break;
       }
+      case "ap":
       case "autoplay": {
         switch(args.shift()?.toLowerCase()) {
           case undefined: {

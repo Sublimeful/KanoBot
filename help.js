@@ -74,7 +74,8 @@ module.exports = {
   },
   'autoplay': {
     description: 'Toggles autoplay mode (Youtube videos)',
-    format: 'autoplay'
+    format: 'autoplay',
+    aliases: ['ap']
   },
   'autoplay rng': {
     description: 'Sets the randomness of autoplayed videos',
