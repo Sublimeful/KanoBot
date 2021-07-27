@@ -105,8 +105,29 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
+    case "toggleAutoplay": {
+      const enabled = data ? "Enabled" : "Disabled";
+      const m1 = getSimpleEmbed(`**----- Autoplay -----**\n${codify(enabled)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "autoplayVolatility": {
+      const m1 = getSimpleEmbed(`**----- Autoplay Volatility -----**\n${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
+    case "setAutoplayVolatility": {
+      const m1 = getSimpleEmbed(`**----- New Autoplay Volatility -----**\n${codify(data)}`);
+      message.channel.send(m1);
+      break;
+    }
     case "addingAMQ": {
       const m1 = getSimpleEmbed("🤖 Generating AMQ song...");
+      message.channel.send(m1);
+      break;
+    }
+    case "addingAutoplay": {
+      const m1 = getSimpleEmbed("🤖 Generating autoplay song...");
       message.channel.send(m1);
       break;
     }
@@ -284,6 +305,11 @@ player.on("error", (message, reason, data) => {
     }
     case "isInGuessMode": {
       const m1 = getSimpleEmbed(`⚠️ Cannot perform this action while in guess mode!`);
+      message.channel.send(m1);
+      break;
+    }
+    case "noRelatedVideos": {
+      const m1 = getSimpleEmbed("⚠️ Autoplay failed because there are no related videos!");
       message.channel.send(m1);
       break;
     }
@@ -517,6 +543,26 @@ client.on("message", async message => {
           }
           case "generate": {
             await player.addAMQ(message, args.join(" "));
+            break;
+          }
+          default: {
+            const mention = message.author.toString();
+            const m1 = getSimpleEmbed(`⚠️ Please provide a valid command! [${mention}]`);
+            message.channel.send(m1);
+            break;
+          }
+        }
+        break;
+      }
+      case "autoplay": {
+        switch(args.shift()?.toLowerCase()) {
+          case undefined:
+          case "toggle": {
+            await player.toggleAutoplay(message);
+            break;
+          }
+          case "volatility": {
+            await player.setAutoplayVolatility(message, parseInt(args[0]));
             break;
           }
           default: {

@@ -71,6 +71,10 @@ class Player extends EventEmitter {
       volume: 1.0,
       isPlaying: false,
       loop: "off",
+      autoplay: {
+        isEnabled: false,
+        volatility: 0,
+      },
       amq: {
         isEnabled: false,
         guessMode: false,
@@ -205,7 +209,9 @@ class Player extends EventEmitter {
       thumbnail: null,
       requestor: message.author.toString(),
       source: null,
-      backupUrl: null
+      backupUrl: null,
+      related: null,
+      id: null
     }
 
     const queryType = getQueryType(query);
@@ -332,6 +338,8 @@ class Player extends EventEmitter {
                 duration: video.durationSec,
                 thumbnail: video.bestThumbnail.url,
                 requestor: message.author.toString(),
+                id: video.id,
+                related: null,
                 source: 'youtube'
               })
             }
@@ -352,11 +360,14 @@ class Player extends EventEmitter {
         try {
           const videoInfo = await ytdl.getBasicInfo(query);
           const videoDetails = videoInfo?.videoDetails;
+          const relatedVideos = videoInfo?.related_videos;
 
           track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
           track.title = videoDetails.title;
           track.duration = parseInt(videoDetails.lengthSeconds);
           track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
+          track.id = videoDetails.videoId;
+          track.related = relatedVideos;
           track.source = 'youtube'
 
           return track;
@@ -396,7 +407,8 @@ class Player extends EventEmitter {
         track.url = video.url;
         track.duration = video.seconds;
         track.thumbnail = video.thumbnail;
-        track.source = 'youtube'
+        track.id = video.videoId;
+        track.source = 'youtube';
 
         return track;
       }
@@ -630,6 +642,28 @@ class Player extends EventEmitter {
     this.emit("notification", message, "toggleAMQ", server.amq.isEnabled = !server.amq.isEnabled);
   }
 
+  /* Sets the volatility of autoplay */
+  async setAutoplayVolatility(message, volatility) {
+    const server = this.getContract(message);
+
+    // Error handling (show the autoplay volatility if volatility is not a number)
+    if(isNaN(volatility)) 
+      return this.emit("notification", message, "autoplayVolatility", server.autoplay.volatility);
+
+    // Limits and thresholds
+    if(volatility < 0) volatility = 0;
+
+    server.autoplay.volatility = volatility;
+    this.emit("notification", message, "setAutoplayVolatility", server.autoplay.volatility);
+  }
+
+  /* Toggles autoplay mode */
+  async toggleAutoplay(message) {
+    const server = this.getContract(message);
+
+    this.emit("notification", message, "toggleAutoplay", server.autoplay.isEnabled = !server.autoplay.isEnabled);
+  }
+
   /* Generate an AMQ track and add it to the queue */
   async addAMQ(message, username = null) {
     const server = this.getContract(message);
@@ -752,6 +786,40 @@ class Player extends EventEmitter {
         await this.jump(message, server.queue.length - 1);
       }
       return true;
+    }
+
+    // If autoplay mode is on, then
+    if(server.autoplay.isEnabled) {
+      const ct = server.queue[server.currentTrack];
+      if(ct && ct.source == "youtube") {
+        // Emit a notification for autoplay
+        this.emit("notification", message, "addingAutoplay");
+
+        // Get relatedVideos if there is none
+        if(!ct.related) {
+          const videoInfo = await ytdl.getBasicInfo(ct.url);
+          const relatedVideos = videoInfo?.related_videos;
+          ct.related = relatedVideos;
+        }
+
+        if(ct.related.length !== 0) {
+          // Play related using volatility
+          const range = Math.min(ct.related.length, server.autoplay.volatility);
+          const rand = Math.floor(Math.random() * range)
+          const autoplayVideo = ct.related[rand];
+          const videoUrl = `https://www.youtube.com/watch?v=${autoplayVideo.id}`;
+
+          // Generate and add the autoplay video
+          if (await this.addTrack(message, videoUrl)) {
+            // ; then play that added track
+            await this.jump(message, server.queue.length - 1);
+          }
+          return true;[]
+        }
+
+        // Emit an error if there is no related videos
+        this.emit("error", message, "noRelatedVideos");
+      }
     }
 
     server.currentTrack = server.queue.length;
