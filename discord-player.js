@@ -53,7 +53,7 @@ class Player extends EventEmitter {
   getTimeStamp(message) {
     const server = this.getContract(message);
     
-    if(server.isPlaying) {
+    if(server.isPlaying && server.connection.dispatcher) {
       const st = server.connection.dispatcher.streamTime;
       const s = server.connection.dispatcher.seek;
 
