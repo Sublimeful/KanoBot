@@ -937,7 +937,7 @@ class Player extends EventEmitter {
     let stream;
 
     if(track.source === "youtube" || track.source === "spotify") {
-      stream = ytdl(track.backupUrl ?? track.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+      stream = ytdl(track.backupUrl ?? track.url, { dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
@@ -1060,7 +1060,7 @@ class Player extends EventEmitter {
     let stream;
 
     if(ct.source === "youtube" || ct.source === "spotify") {
-      stream = ytdl(ct.backupUrl ?? ct.url, {filter: 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+      stream = ytdl(ct.backupUrl ?? ct.url, { dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = ct.source === "soundcloud" ? await scdl.download(ct.url) : ct.url;
     }
