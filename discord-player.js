@@ -53,12 +53,13 @@ class Player extends EventEmitter {
   getTimeStamp(message) {
     const server = this.getContract(message);
     
-    if(server.isPlaying && server.connection.dispatcher) {
-      const st = server.connection.dispatcher.streamTime;
-      const s = server.connection.dispatcher.seek;
+    // Error handling
+    if(!server.isPlaying) return;
 
-      return st + (s ? s : 0);
-    }
+    const st = server.connection.dispatcher.streamTime;
+    const s = server.connection.dispatcher.seek;
+
+    return st + (s ? s : 0);
   }
 
   /* Creates a NEW contract with the server and returns it
@@ -784,8 +785,12 @@ class Player extends EventEmitter {
         clearTimeout(ct.amq.autoplayTimeout);
 
       // Destroy the dispatcher so it doesn't add two things at once
-      if(server.connection && server.connection.dispatcher)
+      if(server.connection && server.connection.dispatcher) {
         server.connection.dispatcher.destroy();
+
+        // Set isPlaying status to false
+        server.isPlaying = false;
+      }
 
       // Generate and add an AMQ track
       if (await this.addAMQ(message)) {
@@ -984,6 +989,9 @@ class Player extends EventEmitter {
 
           // Destroy the dispatcher as to not trigger "finish" event
           server.connection.dispatcher.destroy();
+
+          // Set isPlaying status to false
+          server.isPlaying = false;
 
           // Generate and add an AMQ track
           if (await this.addAMQ(message)) {
