@@ -17,6 +17,7 @@
     "fluent-ffmpeg": "^2.1.2",
     "soundcloud-downloader": "^1.0.0",
     "spotify-url-info": "^2.2.3",
+    "tar": "^6.1.5",
     "yt-search": "^2.9.0",
     "ytdl-core": "^4.9.0",
     "ytpl": "^2.2.1"
