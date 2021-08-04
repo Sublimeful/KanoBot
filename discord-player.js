@@ -487,10 +487,10 @@ class Player extends EventEmitter {
     this.emit("notification", message, "clear");
 
     // Stop playback if playing something
-    if(!server.isPlaying) return;
-
-    server.currentTrack = -1;
-    await this.stop(message);
+    if(server.isPlaying) {
+      server.currentTrack = -1;
+      await this.stop(message);
+    }
   }
 
   /* Moves the track at position "from" to position "to" */
