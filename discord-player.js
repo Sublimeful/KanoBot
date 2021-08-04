@@ -787,8 +787,6 @@ class Player extends EventEmitter {
       // Destroy the dispatcher so it doesn't add two things at once
       if(server.connection && server.connection.dispatcher) {
         server.connection.dispatcher.destroy();
-
-        // Set isPlaying status to false
         server.isPlaying = false;
       }
 
@@ -989,8 +987,6 @@ class Player extends EventEmitter {
 
           // Destroy the dispatcher as to not trigger "finish" event
           server.connection.dispatcher.destroy();
-
-          // Set isPlaying status to false
           server.isPlaying = false;
 
           // Generate and add an AMQ track
