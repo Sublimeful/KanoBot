@@ -54,7 +54,7 @@ class Player extends EventEmitter {
     const server = this.getContract(message);
     
     // Error handling
-    if(!server.isPlaying) return;
+    if(!server.isPlaying) return null;
 
     const st = server.connection.dispatcher.streamTime;
     const s = server.connection.dispatcher.seek;
