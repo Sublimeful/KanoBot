@@ -426,15 +426,13 @@ class Player extends EventEmitter {
       return this.emit("error", message, "argsOutOfBounds");
 
     // Prevent AMQ tracks from being guessed on more than once
-    if(server.isPlaying) {
-      const ct = server.queue[server.currentTrack];
-      if(ct && ct.amq) {
-        clearTimeout(ct.amq.autoplayTimeout);
-        clearTimeout(ct.amq.guessTimeout);
-        if (ct.amq.isGuessable && ct.amq.guessStarted) {
-          ct.amq.reveal();
-          this.emit("notification", message, "guessModeExpired", "previous track!");
-        }
+    const ct = server.queue[server.currentTrack];
+    if(ct && ct.amq) {
+      clearTimeout(ct.amq.autoplayTimeout);
+      clearTimeout(ct.amq.guessTimeout);
+      if (ct.amq.isGuessable && ct.amq.guessStarted) {
+        ct.amq.reveal();
+        this.emit("notification", message, "guessModeExpired", "previous track!");
       }
     }
 
@@ -546,15 +544,13 @@ class Player extends EventEmitter {
       // and isPlaying status to false
       server.connection.on("disconnect", () => {
         // Prevent AMQ tracks from being guessed on more than once
-        if(server.isPlaying) {
-          const ct = server.queue[server.currentTrack];
-          if(ct && ct.amq) {
-            clearTimeout(ct.amq.autoplayTimeout);
-            clearTimeout(ct.amq.guessTimeout);
-            if (ct.amq.isGuessable && ct.amq.guessStarted) {
-              ct.amq.reveal();
-              this.emit("notification", message, "guessModeExpired", "current track!");
-            }
+        const ct = server.queue[server.currentTrack];
+        if(ct && ct.amq) {
+          clearTimeout(ct.amq.autoplayTimeout);
+          clearTimeout(ct.amq.guessTimeout);
+          if (ct.amq.isGuessable && ct.amq.guessStarted) {
+            ct.amq.reveal();
+            this.emit("notification", message, "guessModeExpired", "current track!");
           }
         }
 
