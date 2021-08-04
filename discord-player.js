@@ -1027,10 +1027,8 @@ class Player extends EventEmitter {
        server.queue[server.currentTrack].amq.type === "guess")
       return this.emit("error", message, "isInGuessMode");
 
-    if(server.isPlaying) {
-      server.connection.dispatcher.resume();
-      this.emit("notification", message, "resume");
-    }
+    server.connection.dispatcher.resume();
+    this.emit("notification", message, "resume");
   }
 
   /* Seek to x ms in time */
