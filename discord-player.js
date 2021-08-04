@@ -889,13 +889,10 @@ class Player extends EventEmitter {
 
   /* Play's the track immediately and without question */
   async play(message, track) {
-    // Don't play anything if is not in VC
-    if(!await this.join(message)) return;
-
     const server = this.getContract(message);
 
     // Error handling
-    if(!server.connection) return;
+    if(!server.connection && !await this.join(message)) return;
 
     // Set seek sample for guessmode (+5 seconds of leeway)
     let seek = 0;
@@ -1043,7 +1040,9 @@ class Player extends EventEmitter {
     if(server.queue[server.currentTrack].amq && 
        server.queue[server.currentTrack].amq.type === "guess")
       return this.emit("error", message, "isInGuessMode");
-    if(!server.connection) return;
+
+    //WTF
+    if(!server.connection) return console.error("WTF");
 
     // Thresholds and stuff
     const ct = server.queue[server.currentTrack];
