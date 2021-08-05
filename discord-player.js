@@ -144,9 +144,12 @@ class Player extends EventEmitter {
     const malID = anime.mal_id;
 
 
-    // Get the real song title and search for it
-    const songTitle = songName.match(/^(.+)( by )(.+)$/)[1];
-    const searchQuery =  `${songTitle} - ${animeTitle} ${songType}`.replace(/"/g, '');
+    // Get the searchQuery
+    const match = songName.match(/^(.+)( by )(.+)$/);
+    const songTitle = match ? match[1] : match;
+    const searchQuery = songTitle ? `${songTitle} - ${animeTitle} ${songType}`.replace(/"/g, '') : songName.replace(/"/g, '');
+
+    // Get the track object
     const track = await this.#generateTrack(message, searchQuery);
 
 
@@ -212,7 +215,8 @@ class Player extends EventEmitter {
       thumbnail: null,
       source: null,
       backupUrl: null,
-      related: null
+      related: null,
+      amq: null
     }
 
     const queryType = getQueryType(query);
