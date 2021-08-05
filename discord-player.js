@@ -150,10 +150,10 @@ class Player extends EventEmitter {
 
     if(match) {
       const songTitle = match[1];
-      searchQuery = `${songTitle} - ${animeTitle} ${songType}`.replace(/"/g, '');
+      searchQuery = `${songTitle} - ${animeTitle} ${songType}`;
     } else {
       console.log(`Cannot extract song title from: ${songName}`);
-      searchQuery = songName.replace(/"/g, '');
+      searchQuery = songName;
     }
 
     // Get the track object
