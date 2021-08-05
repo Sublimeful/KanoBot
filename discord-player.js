@@ -818,7 +818,7 @@ class Player extends EventEmitter {
         if(!ct.info) ct.info = await ytdl.getBasicInfo(ct.url);
 
         // Get related videos from ct.info
-        var related = videoInfo?.related_videos;
+        var related = ct.info?.related_videos;
 
         // If autoplay unique is on, filter out all the non-unique videos
         if(server.autoplay.unique) {
