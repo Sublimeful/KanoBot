@@ -225,7 +225,7 @@ class Player extends EventEmitter {
       thumbnail: null,
       source: null,
       backupUrl: null,
-      related: null,
+      info: null,
       amq: null
     }
 
@@ -354,7 +354,7 @@ class Player extends EventEmitter {
                 id: video.id,
                 duration: video.durationSec,
                 thumbnail: video.bestThumbnail.url,
-                related: null,
+                info: null,
                 source: 'youtube'
               })
             }
@@ -375,15 +375,14 @@ class Player extends EventEmitter {
         try {
           const videoInfo = await ytdl.getBasicInfo(query);
           const videoDetails = videoInfo?.videoDetails;
-          const relatedVideos = videoInfo?.related_videos;
 
           track.url = `https://www.youtube.com/watch?v=${videoDetails.videoId}`;
           track.id = videoDetails.videoId;
           track.title = videoDetails.title;
           track.duration = parseInt(videoDetails.lengthSeconds);
           track.thumbnail = videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url;
-          track.related = relatedVideos;
-          track.source = 'youtube'
+          track.info = videoInfo;
+          track.source = 'youtube';
 
           return track;
         } catch(err) {
@@ -815,23 +814,22 @@ class Player extends EventEmitter {
         // Emit a notification for autoplay
         this.emit("notification", message, "addingAutoplay");
 
-        // Get relatedVideos if there is none
-        if(!ct.related) {
-          const videoInfo = await ytdl.getBasicInfo(ct.url);
-          const relatedVideos = videoInfo?.related_videos;
-          ct.related = relatedVideos;
-        }
+        // Get ct.info if it does not exist
+        if(!ct.info) ct.info = await ytdl.getBasicInfo(ct.url);
+
+        // Get related videos from ct.info
+        var related = videoInfo?.related_videos;
 
         // If autoplay unique is on, filter out all the non-unique videos
         if(server.autoplay.unique) {
-          ct.related = ct.related.filter(v => !server.autoplay.played.has(v.id));
+          related = related.filter(v => !server.autoplay.played.has(v.id));
         }
 
-        if(ct.related.length !== 0) {
+        if(related.length !== 0) {
           // Play related using rng
-          const range = Math.min(ct.related.length, server.autoplay.rng);
+          const range = Math.min(related.length, server.autoplay.rng);
           const rand = Math.floor(Math.random() * range)
-          const autoplayVideo = ct.related[rand];
+          const autoplayVideo = related[rand];
           const videoUrl = `https://www.youtube.com/watch?v=${autoplayVideo.id}`;
 
           // Generate and add the autoplay video
@@ -945,8 +943,11 @@ class Player extends EventEmitter {
 
     if(track.source === "youtube" || track.source === "spotify") {
       const url = track.backupUrl ?? track.url;
-      const videoInfo = await ytdl.getBasicInfo(url);
-      stream = ytdl(url, { filter: videoInfo?.videoDetails.isLive ? '' : 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+
+      // Get info if it does not exist
+      if(!track.info) track.info = await ytdl.getBasicInfo(url);
+
+      stream = ytdl(url, { filter: track.info?.videoDetails.isLive ? '' : 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
@@ -1072,8 +1073,11 @@ class Player extends EventEmitter {
 
     if(ct.source === "youtube" || ct.source === "spotify") {
       const url = ct.backupUrl ?? ct.url;
-      const videoInfo = await ytdl.getBasicInfo(url);
-      stream = ytdl(url, { filter: videoInfo?.videoDetails.isLive ? '' : 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
+
+      // Get info if it does not exist
+      if(!ct.info) ct.info = await ytdl.getBasicInfo(url);
+
+      stream = ytdl(url, { filter: ct.info?.videoDetails.isLive ? '' : 'audioonly', dlChunkSize: 0, highWaterMark: 1<<25 });
     } else {
       stream = ct.source === "soundcloud" ? await scdl.download(ct.url) : ct.url;
     }
