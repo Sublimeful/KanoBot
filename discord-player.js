@@ -156,6 +156,9 @@ class Player extends EventEmitter {
       searchQuery = songName;
     }
 
+    console.log(`Search query: ${searchQuery}`);
+
+
     // Get the track object
     const track = await this.#generateTrack(message, searchQuery);
 
