@@ -67,11 +67,18 @@ async function getAnimeInfo(malUsername) {
   const page = await (async () => {
     const r = await fetch(`https://api.jikan.moe/v3/user/${malUsername}`);
     const j = await r.json();
-    const totalEntries = j.anime_stats.total_entries;
+    const totalEntries = j.anime_stats?.total_entries;
+
+    // j.anime_stats could be undefined
+    if(!totalEntries) return null;
+
     const pages = Math.ceil(totalEntries / 300);
     
     return (Math.floor(Math.random() * pages) + 1);
   })();
+
+  // Return null if page is null
+  if(!page) return null;
 
   const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}/animelist/all/${page}`);
 
