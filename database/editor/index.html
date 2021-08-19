@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <title>Database Editor</title>
+</head>
+<body>
+
+  <div>
+    <form action="/database_add" method="post">
+      <label for="MalId">MyAnimeList Id:</label>
+      <input type="text" name="MalId"><br><br>
+      <label for="AnimeTitle">Anime Title:</label>
+      <input type="text" name="AnimeTitle"><br><br>
+      <label for="SongUrl">Song Url:</label>
+      <input type="text" name="SongUrl"><br><br>
+      <label for="SongType">Song Type:</label>
+      <input type="text" name="SongType"><br><br>
+      <input type="submit" value="Submit">
+    </form>
+  </div>
+
+  <hr>
+
+  <div id="Editor"></div>
+
+
+
+  
+</body>
+<script src="script.js"></script>
+</html>
