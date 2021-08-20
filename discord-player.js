@@ -147,7 +147,7 @@ class Player extends EventEmitter {
 
     if(track.amq.isGuessable) {
       // Get alternate titles and add it to guessTitles
-      const anime = await (await fetch("https://api.jikan.moe/v3/anime/22199")).json();
+      const anime = await (await fetch(`https://api.jikan.moe/v3/anime/${malId}`)).json();
 
       if(anime.title) {
         track.amq.guessTitles.add(anime.title.toLowerCase());
@@ -161,9 +161,11 @@ class Player extends EventEmitter {
         track.amq.guessTitles.add(anime.title_japanese.toLowerCase());
       }
 
-      anime.title_synonyms.forEach(title => {
-        track.amq.guessTitles.add(title.toLowerCase());
-      })
+      if(anime.title_synonyms) {
+        anime.title_synonyms.forEach(title => {
+          track.amq.guessTitles.add(title.toLowerCase());
+        })
+      }
     }
 
     return track;
