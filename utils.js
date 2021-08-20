@@ -85,6 +85,9 @@ async function getRandomAnimeSong(malUsername, malId = null) {
     const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}/animelist/all/${num}`);
     const entries = (await res.json()).anime;
 
+    // entries could be undefined
+    if(!entries) continue;
+
     // Get what anime is actually in the database
     const intersection = entries.filter(e => {
       return animeList.includes(e.mal_id.toString())
