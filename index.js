@@ -541,7 +541,8 @@ client.on("message", async message => {
           break;
         }
         case "generate": {
-          await player.addAMQ(message, args.join(" "));
+          const malId = parseInt(args.join(" "));
+          await player.addAMQ(message, malId);
           break;
         }
         default: {

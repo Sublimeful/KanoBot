@@ -105,9 +105,9 @@ module.exports = {
     description: 'Toggles AMQ mode (Anime Music Quiz)',
     format: 'amq'
   },
-  'amq generate': {
-    description: 'Generates an AMQ song',
-    format: 'amq generate, amq generate [MyAnimeList Username]'
+  'amq generate [malId]': {
+    description: 'Generates an AMQ song, or song from a specified anime',
+    format: 'amq generate, amq generate [MyAnimeList Id]'
   },
   'mal add': {
     description: 'Adds a MAL account',

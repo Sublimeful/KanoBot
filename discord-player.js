@@ -101,12 +101,12 @@ class Player extends EventEmitter {
   }
 
   /* Generate an AMQ track Object */
-  async #generateAMQ(message, username) {
+  async #generateAMQ(message, username, malId = null) {
     const server = this.getContract(message);
 
     this.emit("notification", message, "amqChoosingFrom", username?username:"🎲 RANDOM 🎲");
 
-    const song = await getRandomAnimeSong(username);
+    const song = await getRandomAnimeSong(username, malId);
 
     if(!song) return null;
 
@@ -115,7 +115,7 @@ class Player extends EventEmitter {
     const songType = song.SongType;
     const songUrl = song.SongUrl
     const animeTitle = song.AnimeTitle;
-    const malId = song.MalId;
+    malId = song.MalId;
 
     console.log(songUrl)
 
@@ -632,21 +632,23 @@ class Player extends EventEmitter {
   }
 
   /* Generate an AMQ track and add it to the queue */
-  async addAMQ(message, username = null) {
+  async addAMQ(message, malId = null) {
     const server = this.getContract(message);
 
-    if(!username) {
-      // Get random username
-      const usernames = server.amq.mal.usernames;
+    // get random anime song from anime
+    if(malId && !isNaN(malId)) {
+      let track = await this.#generateAMQ(message, null, malId);
+      server.queue.push(track);
+      this.emit("notification", message, "trackAdded", track);
+      return track;
+    }
 
-      let rand = Math.random();
-      if(rand < server.amq.mal.chance && usernames.length !== 0) {
-        username = usernames[Math.floor(usernames.length * Math.random())];
-      }
-    } else {
-      // Error handling
-      if(!server.amq.mal.usernames.includes(username))
-        return this.emit("error", message, "malNotInList", username);
+    // Get random username
+    const usernames = server.amq.mal.usernames;
+    let username;
+
+    if(Math.random() < server.amq.mal.chance && usernames.length !== 0) {
+      username = usernames[Math.floor(usernames.length * Math.random())];
     }
 
     // Generate an AMQ track

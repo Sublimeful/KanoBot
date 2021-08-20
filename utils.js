@@ -40,7 +40,14 @@ function getQueryType(query) {
 }
 
 /* Getter for random anime song */
-async function getRandomAnimeSong(malUsername) {
+async function getRandomAnimeSong(malUsername, malId = null) {
+  if(malId) {
+    const res = await fetch(`http://localhost:${port}/database/${malId}`);
+    const songs = (await res.json()).songs;
+
+    return songs[Math.floor(Math.random() * songs.length)];
+  }
+
   if(!malUsername) {
     const res = await fetch(`http://localhost:${port}/roulette`);
 
