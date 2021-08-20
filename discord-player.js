@@ -638,6 +638,13 @@ class Player extends EventEmitter {
     // get random anime song from anime
     if(malId && !isNaN(malId)) {
       let track = await this.#generateAMQ(message, null, malId);
+
+      // If no track again, then display error
+      if(!track) {
+        this.emit("error", message, "errorAddingAMQ");
+        return null;
+      }
+
       server.queue.push(track);
       this.emit("notification", message, "trackAdded", track);
       return track;
