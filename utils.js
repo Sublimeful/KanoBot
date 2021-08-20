@@ -45,6 +45,8 @@ async function getRandomAnimeSong(malUsername, malId = null) {
     const res = await fetch(`http://localhost:${port}/database/${malId}`);
     const songs = (await res.json()).songs;
 
+    if(songs.length === 0) return null;
+
     return songs[Math.floor(Math.random() * songs.length)];
   }
 
