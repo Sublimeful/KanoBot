@@ -8,7 +8,7 @@ const ytpl = require('ytpl');
 const spotify = require("spotify-url-info");
 const scdl = require('soundcloud-downloader').default;
 
-const { getAnimeInfo, getQueryType, stringSimilarity } = require("./utils");
+const { getRandomAnimeSong, getQueryType, stringSimilarity } = require("./utils");
 
 ffmpeg.setFfprobePath(ffprobe.path);
 
@@ -106,77 +106,31 @@ class Player extends EventEmitter {
 
     this.emit("notification", message, "amqChoosingFrom", username?username:"🎲 RANDOM 🎲");
 
-    const anime = await getAnimeInfo(username);
+    const song = await getRandomAnimeSong(username);
 
-    if(!anime) {
-      console.error(`Could not get animeInfo for username ${username?username:"🎲 RANDOM 🎲"}`);
-      return null;
-    }
+    if(!song) return null;
 
-    // Concat opening and ending themes
-    const openings = anime.opening_themes.map(theme => {
-      if(anime.opening_themes.length > 1) 
-        return {themeType: `OP ${theme.substr(0, theme.indexOf(":"))}`, 
-                themeName: theme.substr(theme.indexOf(":") + 2)};
+    console.log(song)
 
-      return {themeType: `OP #1`, themeName: theme};
-    })
-    const endings = anime.ending_themes.map(theme => {
-      if(anime.ending_themes.length > 1) 
-        return {themeType: `ED ${theme.substr(0, theme.indexOf(":"))}`, 
-                themeName: theme.substr(theme.indexOf(":") + 2)};
+    const songType = song.SongType;
+    const songUrl = song.SongUrl
+    const animeTitle = song.AnimeTitle;
+    const malId = song.MalId;
 
-      return {themeType: `ED #1`, themeName: theme};
-    })
+    console.log(songUrl)
 
-    const themes = openings.concat(endings);
-    const theme = themes[Math.floor(themes.length * Math.random())];
+    let track = await this.#generateTrack(message, songUrl);
 
-    if(!theme) {
-      console.error(`No theme for anime ${anime.mal_id}`);
-      return null;
-    }
+    if(!track) return null;
 
-    const songType = theme.themeType;
-    const songName = theme.themeName;
-
-    const releaseDate = anime.premiered ?? anime.aired.string;
-    const animeTitle = anime.title;
-    const malID = anime.mal_id;
-
-
-    // Get the searchQuery
-    var searchQuery;
-    const match = songName.match(/^"(.+)"(.+)$/);
-
-    if(match) {
-      const songTitle = match[1];
-      searchQuery = `${songTitle} - ${animeTitle} ${songType}`.replace(/"/g, '');
-    } else {
-      console.log(`Cannot extract song title from: ${songName}`);
-      searchQuery = songName.replace(/"/g, '');
-    }
-
-    console.log(`Search query: ${searchQuery}`);
-
-
-    // Get the track object
-    const track = await this.#generateTrack(message, searchQuery);
-
-    if(!track) {
-      console.error(`Could not generate track for search term ${searchQuery}`);
-      return null;
-    }
 
     track.requestor = username ? `**${username}**` : "🎲 **RANDOM** 🎲";
     track.title = server.amq.guessMode ? `[AMQ Guess] ${songType}` : `[AMQ Normal] ${songType}`;
     track.amq = {
       songType: songType,
-      songName: songName,
-      releaseDate: releaseDate,
       animeTitle: animeTitle,
       guessTitles: new Set(),
-      malID: malID,
+      malId: malId,
       isGuessable: server.amq.guessMode,
       guessStarted: false,
       guessedCorrectly: new Set(),
@@ -187,12 +141,13 @@ class Player extends EventEmitter {
       reveal: function() {
         track.amq.revealed = true;
         track.amq.isGuessable = false;
-        track.title = `${songName} - ${animeTitle} ${songType}`;
+        track.title = `${animeTitle} ${songType}`;
       }
     };
 
     if(track.amq.isGuessable) {
       // Get alternate titles and add it to guessTitles
+      const anime = await (await fetch("https://api.jikan.moe/v3/anime/22199")).json();
 
       if(anime.title) {
         track.amq.guessTitles.add(anime.title.toLowerCase());
@@ -586,13 +541,6 @@ class Player extends EventEmitter {
     
     // Error handling
     if(!username) return this.emit("error", message, "invalidArgs");
-
-    // Testing to see if the username is valid
-    const res = await fetch(`https://api.jikan.moe/v3/user/${username}`);
-
-    // ; If not, then return an error
-    if(!res.ok) 
-      return this.emit("error", message, "invalidMALUsername", username);
 
     server.amq.mal.usernames.push(username);
     this.emit("notification", message, "malAdd", username);

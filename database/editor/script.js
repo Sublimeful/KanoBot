@@ -1,8 +1,34 @@
 const editorDiv = document.getElementById("Editor");
+const searchForMalId = document.getElementById("SearchForMalId");
 
 
-const reload = async () => {
-  const songs = (await (await fetch("/database")).json()).songs;
+
+searchForMalId.addEventListener("keyup", function(event) {
+  if (event.key === "Enter") {
+    // Cancel the default action, if needed
+    event.preventDefault();
+
+
+    reload(searchForMalId.value);
+
+    searchForMalId.value = "";
+
+
+  }
+});
+
+
+const reload = async (malId) => {
+
+  editorDiv.innerHTML = "";
+
+  let songs;
+  if(malId) {
+    songs = (await (await fetch(`/database/${malId}`)).json()).songs;
+  }
+  else {
+    songs = (await (await fetch("/database")).json()).songs;
+  }
 
   const sorted = {};
 

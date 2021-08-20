@@ -13,7 +13,7 @@ function getTrack(track, title, timestamp) {
     const title = `[${track.title}](${track.url})`;
     const requestor = `[${track.requestor}]`;
     const releaseDate = track.amq.releaseDate;
-    const link = `[MyAnimeList](https://myanimelist.net/anime/${track.amq.malID})`;
+    const link = `[MyAnimeList](https://myanimelist.net/anime/${track.amq.malId})`;
     value = [title, requestor, releaseDate, link].join('\n');
   } else if(track.amq) {
     value = `${track.title} [${track.requestor}]`;

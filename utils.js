@@ -1,13 +1,14 @@
 const fetch = require("node-fetch");
 const scdl = require('soundcloud-downloader').default;
+const ytpl = require('ytpl');
+const ytdl = require("ytdl-core");
+const { port } = require("./config");
 
 
 
 const spotifySongRegex = /https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:track\/|\?uri=spotify:track:)((\w|-){22})/;
 const spotifyPlaylistRegex = /https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:playlist\/|\?uri=spotify:playlist:)((\w|-){22})/;
 const spotifyAlbumRegex = /https?:\/\/(?:embed\.|open\.)(?:spotify\.com\/)(?:album\/|\?uri=spotify:album:)((\w|-){22})/;
-const youtubePlaylistRegex = /^.*(youtu.be\/|list=)([^#\&\?]*)$/;
-const youtubeVideoRegex = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/;
 
 
 
@@ -31,40 +32,29 @@ function getQueryType(query) {
   if (spotifySongRegex.test(query)) return 'spotify_song';
   if (spotifyAlbumRegex.test(query)) return 'spotify_album';
   if (spotifyPlaylistRegex.test(query)) return 'spotify_playlist';
-  if (youtubePlaylistRegex.test(query)) return 'youtube_playlist';
-  if (youtubeVideoRegex.test(query)) return 'youtube_video';
+  if (ytpl.validateID(query)) return 'youtube_playlist';
+  if (ytdl.validateURL(query)) return 'youtube_video';
   if (validateURL(query)) return 'media_link';
 
   return 'youtube_search';
 }
 
-/* Getter for anime info */
-async function getAnimeInfo(malUsername) {
+/* Getter for random anime song */
+async function getRandomAnimeSong(malUsername) {
   if(!malUsername) {
-    const res = await fetch("https://themes.moe/api/roulette");
+    const res = await fetch(`http://localhost:${port}/roulette`);
 
-    // If something failed with the api, then return null
-    if(!res.ok) return null;
 
-    // Return info pertaining to the anime
-    return await (async () => {
-      const r = await fetch(`https://api.jikan.moe/v3/anime/${(await res.json()).malID}`);
-
-      // If something failed with the api
-      // ; Or if the api does not recognize the mal_id, then return null
-      if(!r.ok) {
-        console.error(`Could not get animeInfo for anime ${(await res.json()).malID}`);
-        return null;
-      }
-
-      // The json returned is the anime info
-      return (await r.json());
-    })();
+    return (await res.json()).song;
   }
 
 
+  // Get all anime ids in db
+  let animeList = (await (await fetch(`http://localhost:${port}/animelist`)).json()).animeList;
+  animeList = animeList.map(obj => obj.MalId);
 
-  const page = await (async () => {
+
+  const pages = await (async () => {
     const r = await fetch(`https://api.jikan.moe/v3/user/${malUsername}`);
     const j = await r.json();
     const totalEntries = j.anime_stats?.total_entries;
@@ -72,61 +62,37 @@ async function getAnimeInfo(malUsername) {
     // j.anime_stats could be undefined
     if(!totalEntries) return null;
 
-    const pages = Math.ceil(totalEntries / 300);
-    
-    return (Math.floor(Math.random() * pages) + 1);
+    return Math.ceil(totalEntries / 300);
   })();
 
-  // Return null if page is null
-  if(!page) return null;
+  if(!pages) return null;
 
-  const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}/animelist/all/${page}`);
+  const nums = [];
 
-  // If something failed with the api or username is invalid, then return null
-  if(!res.ok) {
-    console.error(`Could not get a result for user ${malUsername} on page ${page}`);
-    return null;
+  for(let i = 0; i < pages; i++) nums.push(i);
+
+  while(nums.length > 0) {
+    const rand = Math.floor(nums.length * Math.random());
+    const num = nums.splice(rand, 1)[0];
+
+    const res = await fetch(`https://api.jikan.moe/v3/user/${malUsername}/animelist/all/${num}`);
+    const entries = (await res.json()).anime;
+
+    // Get what anime is actually in the database
+    const intersection = entries.filter(e => {
+      return animeList.includes(e.mal_id.toString())
+    });
+
+    console.log(intersection.length)
+
+    if(intersection.length === 0) continue;
+
+    const entry = intersection[Math.floor(intersection.length * Math.random())];
+
+    const songs = (await (await fetch(`http://localhost:${port}/database/${entry.mal_id}`)).json()).songs;
+
+    return songs[Math.floor(songs.length * Math.random())];
   }
-
-  const json = await res.json();
-
-  const entries = json.anime;
-
-  const filter = entries.filter(entry => {
-    // Keep the entry no matter what
-    return true;
-
-    // const watchStatus = parseInt(entry.watching_status);
-
-    // Keep the entry if the watchStatus is completed or watching
-    // return (watchStatus === 1 || watchStatus === 2);
-  })
-
-  // Return null if there is no anime in their completed/watching list
-  if(filter.length === 0) {
-    console.error(`No anime with watchStatus completed or watching for user ${malUsername} on page ${page}`);
-    return null;
-  }
-
-
-
-  // Get random entry from their filtered list
-  const entry = filter[Math.floor(filter.length * Math.random())];
-
-  // Return info pertaining to the anime
-  return await (async () => {
-    const r = await fetch(`https://api.jikan.moe/v3/anime/${entry.mal_id}`);
-
-    // If something failed with the api
-    // ; Or if the api does not recognize the mal_id, then return null
-    if(!r.ok) {
-      console.error(`Could not fetch animeInfo for anime ${entry.mal_id}`);
-      return null;
-    }
-
-    // The json returned is the anime info
-    return (await r.json());
-  })();
 }
 
 function stringSimilarity(s1, s2) {
@@ -173,8 +139,8 @@ function editDistance(s1, s2) {
 
 
 module.exports = {
-  "getAnimeInfo": getAnimeInfo,
-  "getQueryType": getQueryType,
-  "stringSimilarity": stringSimilarity
+  getRandomAnimeSong,
+  getQueryType,
+  stringSimilarity
 }
 
