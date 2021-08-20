@@ -1,6 +1,6 @@
 module.exports = {
   prefix: "!",
-  token: "ODM5MjkyNzAwOTIxODIzMjUy.YJHiPQ.HG-auTp4nyCvuY052ybGLDQtNnk",
+  token: "TOKEN",
   port: 4000
 }
 
