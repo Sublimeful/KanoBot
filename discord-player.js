@@ -413,11 +413,6 @@ class Player extends EventEmitter {
   /* Shuffles the queue */
   async shuffle(message) {
     const server = this.getContract(message);
-    
-    // Error handling
-    if(isNaN(from) || isNaN(to)) return this.emit("error", message, "invalidArgs");
-    if(from < 0 || from >= server.queue.length || to < 0 || to >= server.queue.length)
-      return this.emit("error", message, "argsOutOfBounds");
 
     let currentSong = server.queue[server.currentTrack];
     server.queue.sort((_a, _b) => 0.5 - Math.random());
