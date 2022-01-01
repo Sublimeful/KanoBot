@@ -68,6 +68,10 @@ module.exports = {
     description: 'Seeks \"seconds\" seconds forward/backward',
     format: 'seek ±[seconds]'
   },
+  'shuffle': {
+    description: 'Shuffles the queue',
+    format: 'shuffle'
+  },
   'loop': {
     description: 'Set the loop to \"off\", \"track\" or \"queue\"',
     format: 'loop [type]'

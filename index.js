@@ -225,6 +225,11 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
+    case "shuffle": {
+      const m1 = getSimpleEmbed(`🛈 The queue has been shuffled!`);
+      message.channel.send(m1);
+      break;
+    }
     default: {
       const m1 = getSimpleEmbed("How is this even possible?");
       message.channel.send(m1);
@@ -449,6 +454,10 @@ client.on("message", async message => {
     }
     case "seek": {
       await player.seek(message, Math.floor(parseFloat(args[0]) * 1000));
+      break;
+    }
+    case "shuffle": {
+      await player.shuffle(message);
       break;
     }
     case "loop": {
