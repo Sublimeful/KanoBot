@@ -1,10 +1,10 @@
 const { Client } = require('discord.js');
-const { prefix, token } = require("./config");
-const { formatTime, codify, printQueue, getNowPlaying, getSimpleEmbed, getMoveEmbed, getSong, getHelp, getReveal } = require("./formatter");
+const { prefix, token } = require("../config");
+const { formatTime, codify, printQueue, getNowPlaying, getSimpleEmbed, getMoveEmbed, getSong, getHelp, getReveal } = require("./tools/formatter");
 
-const Player = require("./discord-player");
+const Player = require("./tools/discord-player");
 
-const client = new Client();
+const client = new Client({intents: ["GUILDS", "GUILD_VOICE_STATES", "GUILD_MESSAGES", "GUILD_MESSAGE_REACTIONS"]});
 const player = new Player();
 
 

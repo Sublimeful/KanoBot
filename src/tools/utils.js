@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
 const ytdl = require("ytdl-core");
-const { port } = require("./config");
+const { port } = require("../../config");
 
 
 

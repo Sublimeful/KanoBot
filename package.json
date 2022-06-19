@@ -2,9 +2,9 @@
   "name": "musicbot",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./src/index.js",
   "scripts": {
-    "start": "node --trace-warnings index.js"
+    "start": "node --trace-warnings ./src/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -12,7 +12,7 @@
     "@discordjs/opus": "^0.7.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
-    "discord.js": "^13.8.0",
+    "discord.js": "^12.5.3",
     "express": "^4.17.1",
     "ffmpeg-static": "^5.0.0",
     "ffprobe-static": "^3.0.0",

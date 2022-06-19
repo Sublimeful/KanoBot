@@ -1,10 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors")
-
 const app = express();
 const db = require("./database/songs");
-const { port } = require("./config");
+const { port } = require("../config");
 
 app.get('/', (_, res) => res.send(`Server is up on port ${port}`));
 
