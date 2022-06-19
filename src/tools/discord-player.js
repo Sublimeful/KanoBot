@@ -923,6 +923,10 @@ class Player extends EventEmitter {
       stream = track.source === "soundcloud" ? await scdl.download(track.url) : track.url;
     }
 
+    // When everyone is muted, discord stops the bot from playing music
+    // by destroying the connection, so handle that error
+    if(!server.connection) return console.error("Connection is destroyed!");
+
     server.connection
       .play(stream, { bitrate: 'auto', seek: seek }) // IN SECONDS
       .on("finish", () => {
