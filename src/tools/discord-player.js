@@ -169,8 +169,9 @@ class Player extends EventEmitter {
       }
     }
 
-    if(server.amq.autoreveal) {
+    if(server.amq.autoreveal && server.amq.guessMode === false) {
       // Automatically reveal song if autoreveal is on
+      // and guessmode is off
       track.amq.reveal();
     }
 

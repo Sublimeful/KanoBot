@@ -90,7 +90,7 @@ module.exports = {
     format: 'autoplay unique'
   },
   'autoreveal': {
-    description: 'Toggles whether to automatically reveal an AMQ song',
+    description: 'Toggles whether to automatically reveal an AMQ song if guessmode is off',
     format: 'autoreveal'
   },
   'reveal': {
