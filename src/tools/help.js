@@ -89,13 +89,13 @@ module.exports = {
     description: 'Whether autoplay will play unique tracks',
     format: 'autoplay unique'
   },
-  'autoreveal': {
-    description: 'Toggles whether to automatically reveal an AMQ song if guessmode is off',
-    format: 'autoreveal'
-  },
   'reveal': {
     description: 'Reveals an AMQ song',
     format: 'reveal, reveal [position]'
+  },
+  'autoreveal': {
+    description: 'Toggles whether to automatically reveal an AMQ song if guessmode is off',
+    format: 'autoreveal'
   },
   'guess': {
     description: 'Guess the currently playing AMQ track',
