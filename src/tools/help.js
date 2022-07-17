@@ -89,6 +89,10 @@ module.exports = {
     description: 'Whether autoplay will play unique tracks',
     format: 'autoplay unique'
   },
+  'autoreveal': {
+    description: 'Toggles whether to automatically reveal an AMQ song',
+    format: 'autoreveal'
+  },
   'reveal': {
     description: 'Reveals an AMQ song',
     format: 'reveal, reveal [position]'

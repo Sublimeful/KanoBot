@@ -97,6 +97,12 @@ player.on("notification", (message, type, data) => {
       message.channel.send(m1);
       break;
     }
+    case "toggleAutoReveal": {
+      const enabled = data ? "Enabled" : "Disabled";
+      const m1 = getSimpleEmbed(`**----- Auto Reveal -----**\n${codify(enabled)}`);
+      message.channel.send(m1);
+      break;
+    }
     case "toggleAMQ": {
       const enabled = data ? "Enabled" : "Disabled";
       const m1 = getSimpleEmbed(`**----- Anime Music Quiz -----**\n${codify(enabled)}`);
@@ -466,6 +472,10 @@ client.on("message", async message => {
     }
     case "guess": {
       await player.guessAMQ(message, args.join(" "));
+      break;
+    }
+    case "autoreveal": {
+      await player.toggleAutoReveal(message);
       break;
     }
     case "reveal": {

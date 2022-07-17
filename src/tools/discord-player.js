@@ -80,6 +80,7 @@ class Player extends EventEmitter {
         played: new Set()
       },
       amq: {
+        autoreveal: true,
         isEnabled: false,
         guessMode: false,
         guessTime: 20,
@@ -137,7 +138,7 @@ class Player extends EventEmitter {
       guessTimeout: null,
       autoplayTimeout: null,
       type: server.amq.guessMode ? "guess" : "normal",
-      revealed: false,
+      revealed: server.amq.autoreveal,
       reveal: function() {
         track.amq.revealed = true;
         track.amq.isGuessable = false;
@@ -674,15 +675,9 @@ class Player extends EventEmitter {
     this.emit("notification", message, "addingAMQ");
     let track = await this.#generateAMQ(message, username);
 
-    // Error handling
-    if(!track) {
+    // If no track again, then continue to add random song
+    while(!track) {
       track = await this.#generateAMQ(message, null);
-
-      // If no track again, then display error
-      if(!track) {
-        this.emit("error", message, "errorAddingAMQ");
-        return null;
-      }
     }
 
     server.queue.push(track);
@@ -1079,6 +1074,16 @@ class Player extends EventEmitter {
     server.connection.dispatcher.setVolumeLogarithmic(server.volume);
 
     this.emit("notification", message, "seekTo", ms);
+  }
+
+  /* Toggle whether to autoreveal an AMQ song */
+  async toggleAutoReveal(message) {
+    const server = this.getContract(message);
+
+    server.amq.autoreveal = !server.amq.autoreveal;
+
+    // Emit notification
+    this.emit("notification", message, "toggleAutoReveal", server.amq.autoreveal);
   }
 
   /* Seek "ms" milliseconds forward or backwards */
