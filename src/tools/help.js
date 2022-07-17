@@ -94,7 +94,7 @@ module.exports = {
     format: 'reveal, reveal [position]'
   },
   'autoreveal': {
-    description: 'Toggles whether to automatically reveal an AMQ song if guessmode when off',
+    description: 'Toggles whether to automatically reveal an AMQ song when guessmode is off',
     format: 'autoreveal'
   },
   'guess': {
