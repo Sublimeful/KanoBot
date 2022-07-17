@@ -37,8 +37,12 @@ const reload = async (malId) => {
 
     sorted[song.MalId].push(song);
   }
+  
+  // Sort alphabetically by title
+  const entries = Object.entries(sorted);
+  entries.sort((a, b) => a[1][0].AnimeTitle.localeCompare(b[1][0].AnimeTitle))
 
-  for(const [key, value] of Object.entries(sorted)) {
+  for(const [key, value] of entries) {
     const opener = document.createElement("div");
     const title = document.createElement("p");
     title.innerHTML = value[0].AnimeTitle;

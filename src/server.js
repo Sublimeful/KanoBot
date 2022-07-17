@@ -3,18 +3,18 @@ const bodyParser = require("body-parser");
 const cors = require("cors")
 const app = express();
 const db = require("./database/songs");
+const path = require("path")
 const { port } = require("../config");
-
-app.get('/', (_, res) => res.send(`Server is up on port ${port}`));
 
 module.exports = () => {
   app.listen(port);
+  console.log(`Server is up on port ${port}`);
 }
 
 app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use(express.static("database/editor"))
+app.use(express.static(path.join(__dirname, "database/editor")))
 
 app.get("/dbeditor", async (req, res) => {
   res.sendFile("database/editor/index.html", { root: __dirname });
