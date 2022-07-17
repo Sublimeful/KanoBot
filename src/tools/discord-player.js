@@ -138,7 +138,7 @@ class Player extends EventEmitter {
       guessTimeout: null,
       autoplayTimeout: null,
       type: server.amq.guessMode ? "guess" : "normal",
-      revealed: server.amq.autoreveal,
+      revealed: false,
       reveal: function() {
         track.amq.revealed = true;
         track.amq.isGuessable = false;
@@ -167,6 +167,11 @@ class Player extends EventEmitter {
           track.amq.guessTitles.add(title.toLowerCase());
         })
       }
+    }
+
+    if(server.amq.autoreveal) {
+      // Automatically reveal song if autoreveal is on
+      track.amq.reveal();
     }
 
     return track;
