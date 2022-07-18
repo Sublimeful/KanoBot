@@ -109,7 +109,7 @@ class Player extends EventEmitter {
 
     const song = await getRandomAnimeSong(username, malId);
 
-    if(!song) return null;
+    if(!song) return [false, `${username} ${malId}`];
 
     console.log(song)
 
@@ -122,7 +122,7 @@ class Player extends EventEmitter {
 
     let track = await this.#generateTrack(message, songUrl);
 
-    if(!track) return null;
+    if(!track) return [false, `${animeTitle} ${songType}`];
 
 
     track.requestor = username ? `**${username}**` : "🎲 **RANDOM** 🎲";
@@ -175,7 +175,7 @@ class Player extends EventEmitter {
       track.amq.reveal();
     }
 
-    return track;
+    return [true, track];
   }
 
   /* Generate a track Object from a query */
@@ -656,11 +656,11 @@ class Player extends EventEmitter {
 
     // get random anime song from anime
     if(malId && !isNaN(malId)) {
-      let track = await this.#generateAMQ(message, null, malId);
+      let [success, track] = await this.#generateAMQ(message, null, malId);
 
       // If no track again, then display error
-      if(!track) {
-        this.emit("error", message, "errorAddingAMQ");
+      if(!success) {
+        this.emit("error", message, "errorAddingAMQ", track);
         return null;
       }
 
@@ -679,11 +679,15 @@ class Player extends EventEmitter {
 
     // Generate an AMQ track
     this.emit("notification", message, "addingAMQ");
-    let track = await this.#generateAMQ(message, username);
+    let [success, track] = await this.#generateAMQ(message, username);
 
     // If no track again, then continue to add random song
-    while(!track) {
-      track = await this.#generateAMQ(message, null);
+    while(!success) {
+      // Emit error if fail
+      this.emit("error", message, "errorAddingAMQ", track);
+
+      // Continue to add if fail
+      [success, track] = await this.#generateAMQ(message, null);
     }
 
     server.queue.push(track);

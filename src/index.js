@@ -284,7 +284,7 @@ player.on("error", (message, reason, data) => {
       break;
     }
     case "errorAddingAMQ": {
-      const m1 = getSimpleEmbed("⚠️ There was an error generating the AMQ song");
+      const m1 = getSimpleEmbed(`⚠️ There was an error generating the AMQ song:\n${codify(data)}`);
       message.channel.send(m1);
       break;
     }
