@@ -176,8 +176,8 @@ class Player extends EventEmitter {
     }
 
     // Simulates failure to add song
-    return [false, `${animeTitle} ${songType}`];
-    // return [true, track];
+    // return [false, `${animeTitle} ${songType}`];
+    return [true, track];
   }
 
   /* Generate a track Object from a query */
