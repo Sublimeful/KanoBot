@@ -175,7 +175,9 @@ class Player extends EventEmitter {
       track.amq.reveal();
     }
 
-    return [true, track];
+    // Simulates failure to add song
+    return [false, `${animeTitle} ${songType}`];
+    // return [true, track];
   }
 
   /* Generate a track Object from a query */
