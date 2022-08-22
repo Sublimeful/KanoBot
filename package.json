@@ -24,7 +24,7 @@
     "sqlite3": "^5.0.2",
     "tar": "^6.1.11",
     "yt-search": "^2.9.0",
-    "ytdl-core": "^4.9.1",
+    "ytdl-core": "https://github.com/GreepTheSheep/node-ytdl-core",
     "ytpl": "^2.2.1"
   }
 }
